@@ -8,18 +8,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Cormorant+SC:wght@300;400&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:        #7BBFBE;
-  --string:    #9C8B78;
-  --mount:     #7A6A58;
-  --photo-bg:  #F9F5EE;
-  --cream:     #F5EEDF;
-  --modal-bg:  #69B4B2;
+  --bg:       #7BBFBE;
+  --photo-bg: #F9F5EE;
+  --cream:    #F5EEDF;
+  --modal-bg: #69B4B2;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { overflow-x: hidden; }
 
-/* Solid bg – no gradient-attachment so mobile scroll is instant */
+/* Solid bg — instant mobile scroll paint */
 body {
   font-family: 'Cormorant Garamond', Georgia, serif;
   background-color: var(--bg);
@@ -27,10 +25,10 @@ body {
   overflow-x: hidden;
 }
 
-/* Subtle grain */
+/* Subtle grain overlay */
 body::after {
   content: '';
-  position: fixed; inset: 0; pointer-events: none; z-index: 9999; opacity: .032;
+  position: fixed; inset: 0; pointer-events: none; z-index: 9999; opacity: .033;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
@@ -40,15 +38,16 @@ body::after {
 .flower-img {
   position: fixed; top: 0; left: 0;
   pointer-events: none;
-  z-index: 190;
-  transition: transform 1.3s cubic-bezier(.4,0,.2,1),
-              opacity  1.1s ease;
   transform-origin: top left;
   user-select: none;
 }
+/* Hydrangeas: above gallery (z10) but well below modal (z195) */
+.flower-hydrangea { z-index: 12; }
+/* Stems: behind gallery entirely */
+.flower-stem      { z-index: 5; }
 
 /* ─────────────────────────────────────────
-   GALLERY WRAPPER
+   GALLERY
 ───────────────────────────────────────── */
 #gallery-wrapper {
   position: relative; z-index: 10;
@@ -70,9 +69,7 @@ body::after {
   cursor: pointer;
   z-index: 3;
   opacity: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: flex; flex-direction: column; align-items: center;
 }
 .photo-wrap:hover .instax {
   box-shadow: 4px 10px 28px rgba(20,10,5,.38), 0 2px 8px rgba(0,0,0,.18);
@@ -88,7 +85,6 @@ body::after {
 }
 .instax img { display: block; width: 100%; background: #C5BAB0; }
 
-/* Settle animation */
 @keyframes settle {
   0%   { opacity: 0; transform: rotate(var(--rot)) translateY(-28px) scale(.95); }
   55%  { opacity: 1; }
@@ -96,7 +92,7 @@ body::after {
   100% { opacity: 1; transform: rotate(var(--rot)) translateY(0); }
 }
 #gallery-wrapper.revealed .photo-wrap {
-  animation: settle .9s cubic-bezier(.34, 1.5, .64, 1) forwards;
+  animation: settle .9s cubic-bezier(.34,1.5,.64,1) forwards;
   animation-delay: var(--d, 0s);
 }
 
@@ -115,37 +111,25 @@ body::after {
 #modal-card {
   position: relative;
   width: clamp(300px, 52vw, 580px);
-  padding: clamp(36px, 5vw, 68px) clamp(30px, 5vw, 64px) clamp(32px, 4.5vw, 56px);
+  padding: clamp(36px,5vw,68px) clamp(30px,5vw,64px) clamp(32px,4.5vw,56px);
   background: var(--modal-bg);
   border-radius: 3px;
   text-align: center;
   box-shadow: 0 30px 90px rgba(8,36,36,.46), 0 5px 22px rgba(0,0,0,.22);
-  animation: cardIn .95s cubic-bezier(.22, 1.4, .64, 1) .5s both;
+  animation: cardIn .95s cubic-bezier(.22,1.4,.64,1) .5s both;
 }
 @keyframes cardIn {
   from { opacity: 0; transform: scale(.83) translateY(22px); }
   to   { opacity: 1; transform: none; }
 }
 
-.modal-sub {
-  font-size: clamp(.68rem, 1.4vw, .8rem);
-  letter-spacing: .32em; text-transform: uppercase;
-  color: var(--cream); opacity: .65;
-  margin-bottom: clamp(12px, 2.2vw, 22px);
+/* Title — all text blocks same size */
+.title-line {
+  font-size: clamp(1.3rem, 3.8vw, 2.3rem);
+  font-weight: 300; font-style: italic;
+  color: var(--cream); line-height: 1.25;
 }
 
-/* Title animation */
-.title-pre {
-  font-size: clamp(.92rem, 2.4vw, 1.38rem);
-  font-weight: 300; font-style: italic;
-  color: var(--cream); line-height: 1.3;
-  margin-bottom: 2px;
-}
-.title-strike-row {
-  font-size: clamp(.92rem, 2.4vw, 1.38rem);
-  font-weight: 300; color: var(--cream);
-  display: block;
-}
 .strike {
   position: relative; display: inline;
 }
@@ -153,114 +137,108 @@ body::after {
   content: '';
   position: absolute;
   left: 0; right: 100%; top: 52%;
-  height: 1.5px;
-  background: var(--cream);
+  height: 1.5px; background: var(--cream);
   transition: right .65s ease;
 }
 .strike.struck::after { right: 0; }
 
-.wedding-reveal {
+/* Elements that appear with the wedding reveal */
+#js-reveal {
   display: block;
-  font-size: clamp(1.5rem, 4.5vw, 2.7rem);
-  font-weight: 300; font-style: italic;
-  color: var(--cream);
-  margin-top: clamp(8px, 1.5vw, 16px);
   opacity: 0; transform: translateY(9px);
   transition: opacity .95s ease, transform .95s ease;
+  margin-top: 4px;
 }
-.wedding-reveal.show { opacity: 1; transform: none; }
+#js-reveal.show { opacity: 1; transform: none; }
 
-.modal-tagline {
-  font-size: clamp(.7rem, 1.5vw, .82rem);
-  letter-spacing: .18em; font-style: italic;
-  color: var(--cream); opacity: 0;
-  margin-top: 5px;
-  transition: opacity 1s ease .4s;
+#js-date {
+  font-size: clamp(.68rem, 1.4vw, .8rem);
+  letter-spacing: .3em; text-transform: uppercase;
+  color: var(--cream);
+  margin-top: clamp(6px, 1.2vw, 12px);
+  opacity: 0; transition: opacity .95s ease .2s;
 }
-.modal-tagline.show { opacity: .55; }
+#js-date.show { opacity: .62; }
 
 .modal-divider {
   width: 58px; height: 1px;
   background: rgba(245,238,224,.32);
-  margin: clamp(20px, 3.5vw, 34px) auto;
+  margin: clamp(20px,3.5vw,34px) auto;
+  opacity: 0; transition: opacity .9s ease;
 }
+.modal-divider.show { opacity: 1; }
+
 #reveal-btn {
   background: transparent;
   border: 1px solid rgba(245,238,224,.52);
   color: var(--cream);
   font-family: 'Cormorant SC', serif;
-  font-size: clamp(.64rem, 1.3vw, .76rem);
+  font-size: clamp(.64rem,1.3vw,.76rem);
   letter-spacing: .34em; text-transform: uppercase;
-  padding: clamp(10px, 1.8vw, 15px) clamp(28px, 4vw, 44px);
+  padding: clamp(10px,1.8vw,15px) clamp(28px,4vw,44px);
   border-radius: 2px; cursor: pointer;
-  transition: background .25s, border-color .25s, transform .18s;
+  opacity: 0; pointer-events: none;
+  transition: background .25s, border-color .25s, transform .18s, opacity .9s ease;
 }
+#reveal-btn.show { opacity: 1; pointer-events: auto; }
 #reveal-btn:hover {
-  background: rgba(245,238,224,.13);
-  border-color: var(--cream);
+  background: rgba(245,238,224,.13); border-color: var(--cream);
   transform: translateY(-2px);
 }
 
 /* ─────────────────────────────────────────
-   ZOOM OVERLAY  (replaces lightbox)
+   ZOOM OVERLAY
 ───────────────────────────────────────── */
 #zoom-overlay {
   position: fixed; inset: 0; z-index: 300;
-  background: rgba(6,18,18,.9);
+  background: rgba(6,18,18,.92);
   backdrop-filter: blur(5px);
-  display: none;
-  cursor: pointer;  /* clicking dark area closes */
+  display: none; cursor: pointer;
+  overflow: hidden;   /* clip the outer container, strip overflows via its own positioning */
 }
 #zoom-overlay.open { display: block; animation: zfade .26s ease; }
 @keyframes zfade { from { opacity: 0; } to { opacity: 1; } }
 
+/* Strip is positioned by JS — no default top/transform here */
 #zoom-strip-outer {
   position: absolute;
   left: 0; right: 0;
-  top: 50%; transform: translateY(-52%);
   overflow: visible;
-  pointer-events: none;  /* photos opt back in individually */
+  pointer-events: none;
   z-index: 1;
-  cursor: default;
 }
 
-/* Individual zoom photo divs */
+/* Individual zoom photos */
 .z-photo {
   position: absolute;
-  top: 32px; /* string Y */
   pointer-events: auto;
   transform-origin: top center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: flex; flex-direction: column; align-items: center;
   cursor: pointer;
-  transition:
-    transform .4s cubic-bezier(.34, 1.2, .64, 1),
-    opacity   .35s ease,
-    left      .4s cubic-bezier(.34, 1.2, .64, 1);
+  will-change: transform, opacity;
 }
 .z-photo.active-slot { cursor: default; }
 
 .z-card {
   background: var(--photo-bg);
   border-radius: 2px;
-  /* Clean shadow only – no ring/banding artifacts */
-  box-shadow: 0 12px 40px rgba(0,0,0,.62), 0 3px 10px rgba(0,0,0,.4);
-  margin-top: 3px;
+  /* Single clean shadow — no compound layers that cause banding */
+  box-shadow: 0 14px 44px rgba(0,0,0,.64), 0 3px 12px rgba(0,0,0,.36);
+  margin-top: 4px;
+  /* Clip image to card bounds */
+  overflow: hidden;
 }
 .z-card img {
-  display: block;
-  width: 100%;
+  display: block; width: 100%;
   background: #C5BAB0;
 }
 
-/* Zoom UI chrome */
 #zoom-count {
   position: absolute;
-  bottom: 26px; left: 50%; transform: translateX(-50%);
+  bottom: 28px; left: 50%; transform: translateX(-50%);
   font-family: 'Cormorant SC', serif;
   font-size: .68rem; letter-spacing: .22em;
-  color: rgba(245,238,224,.38);
+  color: rgba(245,238,224,.36);
   z-index: 2; pointer-events: none;
 }
 #zoom-close {
@@ -306,12 +284,12 @@ body::after {
 #surprise-btn:hover { background: rgba(88,164,162,1); transform: translateY(-2px); }
 
 /* ─────────────────────────────────────────
-   RESPONSIVE TWEAKS
+   RESPONSIVE
 ───────────────────────────────────────── */
 @media (max-width: 480px) {
-  .zoom-arrow  { font-size: 2.4rem; padding: 10px 8px; }
-  #zoom-prev   { left: 2px; }
-  #zoom-next   { right: 2px; }
+  .zoom-arrow { font-size: 2.4rem; padding: 10px 8px; }
+  #zoom-prev  { left: 2px; }
+  #zoom-next  { right: 2px; }
   #surprise-btn { bottom: 16px; right: 16px; padding: 10px 16px; }
 }
 </style>
@@ -319,32 +297,37 @@ body::after {
 <body>
 
 <!-- ══════════════════════════════════════════
-     FLOWER DECORATIONS  (positioned by JS)
+     HYDRANGEA FRAMING (card-specific, fade out on reveal)
 ════════════════════════════════════════════ -->
-<img class="flower-img" id="f-h1"    src="images/First_Hydrangea.png"  alt="" draggable="false">
-<img class="flower-img" id="f-h2"    src="images/Second_Hydrangea.png" alt="" draggable="false">
-<img class="flower-img" id="f-dah"   src="images/First_Dahlia.png"     alt="" draggable="false">
-<img class="flower-img" id="f-sun"   src="images/First_Sun.png"        alt="" draggable="false">
-<img class="flower-img" id="f-wh1"   src="images/First_White.png"      alt="" draggable="false">
-<img class="flower-img" id="f-rose2" src="images/Second_Rose.png"      alt="" draggable="false">
-<img class="flower-img" id="f-wh2"   src="images/Second_White.png"     alt="" draggable="false">
-<img class="flower-img" id="f-red"   src="images/Third_Redish.png"     alt="" draggable="false">
-<!-- Red rose used sparingly as small bottom accent -->
-<img class="flower-img" id="f-rose1" src="images/First_Rose.png"       alt="" draggable="false">
+<img class="flower-img flower-hydrangea" id="f-h1"
+     src="images/First_Hydrangea.png"  alt="" draggable="false">
+<img class="flower-img flower-hydrangea" id="f-h2"
+     src="images/Second_Hydrangea.png" alt="" draggable="false">
+
+<!-- ══════════════════════════════════════════
+     STEM FLOWERS (background decoration, z behind gallery)
+════════════════════════════════════════════ -->
+<img class="flower-img flower-stem" id="f-dah"   src="images/First_Dahlia.png"   alt="" draggable="false">
+<img class="flower-img flower-stem" id="f-sun"   src="images/First_Sun.png"      alt="" draggable="false">
+<img class="flower-img flower-stem" id="f-wh1"   src="images/First_White.png"    alt="" draggable="false">
+<img class="flower-img flower-stem" id="f-rose2" src="images/Second_Rose.png"    alt="" draggable="false">
+<img class="flower-img flower-stem" id="f-wh2"   src="images/Second_White.png"   alt="" draggable="false">
+<img class="flower-img flower-stem" id="f-red"   src="images/Third_Redish.png"   alt="" draggable="false">
+<img class="flower-img flower-stem" id="f-rose1" src="images/First_Rose.png"     alt="" draggable="false">
 
 <!-- ══════════════════════════════════════════
      LANDING MODAL
 ════════════════════════════════════════════ -->
 <div id="modal-overlay" role="dialog" aria-modal="true" aria-label="Welcome">
   <div id="modal-card">
-    <p class="modal-sub">June 14, 2025</p>
 
-    <p class="title-pre">The one where Jessica</p>
-    <span class="title-strike-row">
+    <!-- All title lines share .title-line for uniform font size -->
+    <p class="title-line">The one where Jessica</p>
+    <p class="title-line">
       <span class="strike" id="js-strike">turns 30</span>
-    </span>
-    <span class="wedding-reveal" id="js-reveal">...married Simon! 🤍</span>
-    <p class="modal-tagline" id="js-tagline">a day among the wildflowers</p>
+    </p>
+    <span class="title-line" id="js-reveal">...married Simon! 🤍</span>
+    <p id="js-date">June 14, 2025</p>
 
     <div class="modal-divider"></div>
     <button id="reveal-btn">View the Gallery</button>
@@ -372,48 +355,48 @@ body::after {
   <button class="zoom-arrow" id="zoom-next" aria-label="Next photo">&#8250;</button>
 </div>
 
-<!-- ══════════════════════════════════════════
-     JAVASCRIPT
-════════════════════════════════════════════ -->
 <script>
-/* ───────────────────────────────────────
-   BASE CONFIG  (all measurements in px, at scale 1)
-─────────────────────────────────────── */
-const TOTAL      = 100;
-const BASE_W     = 110;   // card width
-const BASE_H     = 168;   // card height  (≈ Instax Mini portrait ratio)
-const PAD_S      = 8;     // side padding inside card (image border)
-const PAD_T      = 10;    // top padding
-const PAD_B      = 30;    // bottom padding (thick Instax strip)
-const BASE_GAP   = 12;    // gap between card edges
-const BASE_SAG   = 32;    // catenary sag at midpoint
-const BASE_STRY  = 48;    // string Y from top of row
-const PIN_H      = 22;    // clothespin visual height
-const ROW_PAD_B  = 36;    // breathing room below cards
+/* ═══════════════════════════════════════════
+   CONFIG
+═══════════════════════════════════════════ */
+const TOTAL     = 100;
+const BASE_W    = 110;   // card width at scale 1
+const BASE_H    = 168;   // card height at scale 1
+const PAD_S     = 8;     // left/right image padding
+const PAD_T     = 10;    // top image padding
+const PAD_B     = 30;    // bottom Instax strip
+const BASE_GAP  = 12;    // gap between cards
+const BASE_SAG  = 32;    // string catenary sag
+const BASE_STRY = 48;    // string Y from row top
+const ROW_PAD_B = 36;    // breathing room below card bottoms
 
-/* ───────────────────────────────────────
+/* ═══════════════════════════════════════════
    STATE
-─────────────────────────────────────── */
+═══════════════════════════════════════════ */
 let revealed      = false;
 let perRow        = 0;
-let zoomRow       = -1;
-let zoomIdxInRow  = -1;
-let flowerData    = [];   // [{id, initT, finalT}]
+let zoomGlobalIdx = -1;   // single global index; -1 = closed
 
-/* ───────────────────────────────────────
+/* ═══════════════════════════════════════════
    UTILITIES
-─────────────────────────────────────── */
-// Stable per-photo seeded rotation
+═══════════════════════════════════════════ */
+/* Seeded per-photo rotation — stable across renders */
 function srand(s) {
   const x = Math.sin(s * 137.508 + 311.7) * 43758.5453;
   return x - Math.floor(x);
 }
 function getRot(i) { return (srand(i) - 0.5) * 10; }  // ±5°
 
-// Randomise within a range (called once at setup)
-function rnd(range) { return (Math.random() - 0.5) * 2 * range; }
+/* Desktop/tablet card size multiplier */
+function cardScale() {
+  const vw = window.innerWidth;
+  if (vw >= 1400) return 1.55;
+  if (vw >= 1100) return 1.38;
+  if (vw >= 768)  return 1.22;
+  return 1.0;
+}
 
-// Placeholder SVG for photos that haven't loaded real images yet
+/* Placeholder SVG data URI */
 const HUES = [22, 36, 50, 188, 165, 142, 12, 28, 344, 330, 210, 58];
 function placeholder(i) {
   const h = HUES[i % HUES.length], s = 13 + (i % 5) * 3, l = 70 + (i % 6) * 2;
@@ -427,18 +410,9 @@ function placeholder(i) {
   );
 }
 
-// Desktop/tablet scale factor for photo sizing
-function cardScale() {
-  const vw = window.innerWidth;
-  if (vw >= 1400) return 1.55;
-  if (vw >= 1100) return 1.38;
-  if (vw >= 768)  return 1.22;
-  return 1.0;
-}
-
-/* ───────────────────────────────────────
+/* ═══════════════════════════════════════════
    LAZY LOADING
-─────────────────────────────────────── */
+═══════════════════════════════════════════ */
 const imgObserver = new IntersectionObserver(entries => {
   entries.forEach(e => {
     if (!e.isIntersecting) return;
@@ -457,27 +431,68 @@ const imgObserver = new IntersectionObserver(entries => {
   });
 }, { rootMargin: '500px 0px' });
 
-/* ───────────────────────────────────────
-   CLOTHESPIN SVG  (scales with card width)
-─────────────────────────────────────── */
+/* ═══════════════════════════════════════════
+   CLOTHESPIN SVG
+═══════════════════════════════════════════ */
 function pinSVG(cardW) {
-  const pw = Math.max(16, Math.round(cardW * 0.27));
+  const pw = Math.max(14, Math.round(cardW * 0.27));
   const ph = Math.round(pw * 0.82);
   return `<svg viewBox="0 0 30 24" width="${pw}" height="${ph}"
-      xmlns="http://www.w3.org/2000/svg"
-      style="display:block;margin:0 auto;flex-shrink:0">
-    <path d="M2,24 C2,18 6,12 10,9 C11,7 11,3 13,1 L15,1 L15,24Z" fill="#C4904C"/>
-    <path d="M28,24 C28,18 24,12 20,9 C19,7 19,3 17,1 L15,1 L15,24Z" fill="#A87030"/>
-    <line x1="15" y1="1" x2="15" y2="24" stroke="#D8A860" stroke-width=".6" opacity=".38"/>
-    <ellipse cx="15" cy="9.5" rx="5.5" ry="3.5" fill="#7A4E28" stroke="#5A3818" stroke-width=".5"/>
-    <ellipse cx="14" cy="8.6" rx="2" ry="1.1" fill="#9C6A40" opacity=".35"/>
-    <path d="M13,1 Q15,-2 17,1" stroke="#7A4E28" stroke-width="2.1" fill="none" stroke-linecap="round"/>
-  </svg>`;
+    xmlns="http://www.w3.org/2000/svg"
+    style="display:block;margin:0 auto;flex-shrink:0">
+  <path d="M2,24 C2,18 6,12 10,9 C11,7 11,3 13,1 L15,1 L15,24Z" fill="#C4904C"/>
+  <path d="M28,24 C28,18 24,12 20,9 C19,7 19,3 17,1 L15,1 L15,24Z" fill="#A87030"/>
+  <line x1="15" y1="1" x2="15" y2="24" stroke="#D8A860" stroke-width=".6" opacity=".38"/>
+  <ellipse cx="15" cy="9.5" rx="5.5" ry="3.5" fill="#7A4E28" stroke="#5A3818" stroke-width=".5"/>
+  <ellipse cx="14" cy="8.6" rx="2" ry="1.1" fill="#9C6A40" opacity=".35"/>
+  <path d="M13,1 Q15,-2 17,1" stroke="#7A4E28" stroke-width="2.1" fill="none" stroke-linecap="round"/>
+</svg>`;
 }
 
-/* ───────────────────────────────────────
-   BUILD / REBUILD GALLERY
-─────────────────────────────────────── */
+/* ═══════════════════════════════════════════
+   STRING SVG HELPER  (reused by gallery + zoom)
+═══════════════════════════════════════════ */
+function makeStringSVG(vw, strY, sagPx, mntL, mntR) {
+  const midX  = (mntL + mntR) / 2;
+  const ctrlY = strY + sagPx * 2;
+  const svgH  = strY + sagPx * 2 + 16;
+
+  const svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svgEl.setAttribute('width', vw);
+  svgEl.setAttribute('height', svgH);
+  svgEl.style.cssText = 'position:absolute;top:0;left:0;overflow:visible;pointer-events:none';
+
+  /* catenary path */
+  const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  pathEl.setAttribute('d', `M ${mntL} ${strY} Q ${midX} ${ctrlY} ${mntR} ${strY}`);
+  pathEl.setAttribute('stroke', '#9C8B78');
+  pathEl.setAttribute('stroke-width', '1.7');
+  pathEl.setAttribute('fill', 'none');
+  pathEl.setAttribute('opacity', '.76');
+  svgEl.appendChild(pathEl);
+
+  /* wall mounts */
+  [mntL, mntR].forEach(x => {
+    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', x); c.setAttribute('cy', strY);
+    c.setAttribute('r', '4.5');
+    c.setAttribute('fill', '#7A6A58'); c.setAttribute('stroke', '#3E2E1A');
+    c.setAttribute('stroke-width', '.8');
+    svgEl.appendChild(c);
+
+    const sl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    sl.setAttribute('x1', x - 2.2); sl.setAttribute('y1', strY);
+    sl.setAttribute('x2', x + 2.2); sl.setAttribute('y2', strY);
+    sl.setAttribute('stroke', '#2A1A0A'); sl.setAttribute('stroke-width', '.9');
+    svgEl.appendChild(sl);
+  });
+
+  return { svgEl, pathEl };
+}
+
+/* ═══════════════════════════════════════════
+   GALLERY BUILD
+═══════════════════════════════════════════ */
 function buildGallery() {
   const sc     = cardScale();
   const CARD_W = Math.round(BASE_W * sc);
@@ -487,19 +502,17 @@ function buildGallery() {
   const GAP    = Math.round(BASE_GAP * sc);
   const SAG    = Math.round(BASE_SAG * sc);
   const STRY   = Math.round(BASE_STRY * sc);
-  const ROW_H  = STRY + SAG + PIN_H + CARD_H + ROW_PAD_B;
+  const ROW_H  = STRY + SAG + 22 + CARD_H + ROW_PAD_B;
 
   const vw   = window.innerWidth;
   const n    = Math.max(2, Math.floor((vw + GAP) / (CARD_W + GAP)));
   perRow     = n;
   const rows = Math.ceil(TOTAL / n);
 
-  // Horizontal layout geometry
   const totalW  = n * CARD_W + (n - 1) * GAP;
   const offsetX = (vw - totalW) / 2;
   const mntL    = Math.max(4, offsetX - 34);
   const mntR    = Math.min(vw - 4, offsetX + totalW + 34);
-  const midX    = vw / 2;
 
   const wrap = document.getElementById('gallery-wrapper');
   wrap.innerHTML = '';
@@ -510,60 +523,31 @@ function buildGallery() {
     row.className = 'string-row';
     row.style.height = ROW_H + 'px';
 
-    /* ── String SVG ── alternates draw direction per row */
-    const svgH  = STRY + SAG * 2 + 16;
-    const svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svgEl.setAttribute('width', vw);
-    svgEl.setAttribute('height', svgH);
-    svgEl.style.cssText = 'position:absolute;top:0;left:0;overflow:visible;z-index:2;pointer-events:none';
+    /* String — alternate draw direction per row */
+    const { svgEl, pathEl } = makeStringSVG(vw, STRY, SAG, mntL, mntR);
+    svgEl.style.zIndex = '2';
 
-    const ctrlY  = STRY + SAG * 2;
-    const fromL  = r % 2 === 0;           // even rows: left-to-right, odd: right-to-left
-    const pathD  = fromL
-      ? `M ${mntL} ${STRY} Q ${midX} ${ctrlY} ${mntR} ${STRY}`
-      : `M ${mntR} ${STRY} Q ${midX} ${ctrlY} ${mntL} ${STRY}`;
-
-    const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    pathEl.setAttribute('d', pathD);
-    pathEl.setAttribute('stroke', '#9C8B78');
-    pathEl.setAttribute('stroke-width', '1.7');
-    pathEl.setAttribute('fill', 'none');
-    pathEl.setAttribute('opacity', '.76');
-
-    // Animated draw-in (only before reveal)
     if (!revealed) {
       const len = 2500;
+      const fromLeft = r % 2 === 0;
+      // Flip path direction so dash offset animates from correct end
+      if (!fromLeft) {
+        pathEl.setAttribute('d',
+          `M ${mntR} ${STRY} Q ${vw/2} ${STRY + SAG * 2} ${mntL} ${STRY}`);
+      }
       pathEl.style.strokeDasharray  = len;
       pathEl.style.strokeDashoffset = len;
       pathEl.style.transition =
         `stroke-dashoffset 1.35s cubic-bezier(.4,0,.2,1) ${r * 0.17}s`;
       requestAnimationFrame(() => setTimeout(() => { pathEl.style.strokeDashoffset = '0'; }, 60));
     }
-    svgEl.appendChild(pathEl);
-
-    // Wall mounts
-    [mntL, mntR].forEach(x => {
-      const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      c.setAttribute('cx', x); c.setAttribute('cy', STRY);
-      c.setAttribute('r', '4.5');
-      c.setAttribute('fill', '#7A6A58'); c.setAttribute('stroke', '#3E2E1A');
-      c.setAttribute('stroke-width', '.8');
-      svgEl.appendChild(c);
-      // Screw line
-      const sl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      sl.setAttribute('x1', x - 2.2); sl.setAttribute('y1', STRY);
-      sl.setAttribute('x2', x + 2.2); sl.setAttribute('y2', STRY);
-      sl.setAttribute('stroke', '#2A1A0A'); sl.setAttribute('stroke-width', '.9');
-      svgEl.appendChild(sl);
-    });
     row.appendChild(svgEl);
 
-    /* ── Photos ── */
+    /* Photos */
     for (let i = 0; i < count; i++) {
       const idx  = r * n + i;
       const xL   = offsetX + i * (CARD_W + GAP);
       const xc   = xL + CARD_W / 2;
-      // Catenary y-offset at this x
       const t    = (xc - mntL) / (mntR - mntL);
       const yOff = 4 * SAG * t * (1 - t);
       const rot  = getRot(idx);
@@ -584,25 +568,21 @@ function buildGallery() {
 
       const img = document.createElement('img');
       img.alt    = `Wedding photo ${idx + 1}`;
-      img.width  = IMG_W;
-      img.height = IMG_H;
+      img.width  = IMG_W; img.height = IMG_H;
       img.src    = placeholder(idx);
       img.style.height = IMG_H + 'px';
-      img.dataset.real = `images/photo-${String(idx + 1).padStart(3, '0')}.jpg`;
+      img.dataset.real = `images/photo-${String(idx + 1).padStart(3,'0')}.jpg`;
       imgObserver.observe(img);
 
       card.appendChild(img);
       pw.appendChild(card);
-
-      const rRow = r, rI = i;
-      pw.addEventListener('click', () => openZoom(rRow, rI));
+      pw.addEventListener('click', () => openZoom(idx));
       row.appendChild(pw);
     }
 
     wrap.appendChild(row);
   }
 
-  // If already revealed (resize rebuild), skip animation
   if (revealed) {
     wrap.querySelectorAll('.photo-wrap').forEach(el => {
       el.style.animation = 'none';
@@ -611,12 +591,11 @@ function buildGallery() {
   }
 }
 
-/* ───────────────────────────────────────
-   ZOOM  (in-place clothesline zoom)
-─────────────────────────────────────── */
-function openZoom(row, idxInRow) {
-  zoomRow      = row;
-  zoomIdxInRow = idxInRow;
+/* ═══════════════════════════════════════════
+   ZOOM  — global index, continuous nav across all 100 photos
+═══════════════════════════════════════════ */
+function openZoom(globalIdx) {
+  zoomGlobalIdx = globalIdx;
   renderZoom();
   document.getElementById('zoom-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -625,13 +604,12 @@ function openZoom(row, idxInRow) {
 function closeZoom() {
   document.getElementById('zoom-overlay').classList.remove('open');
   document.body.style.overflow = '';
-  zoomRow = -1; zoomIdxInRow = -1;
+  zoomGlobalIdx = -1;
 }
 
+/* Navigate continuously across all 100 photos, wrapping */
 function navZoom(dir) {
-  const rowStart = zoomRow * perRow;
-  const count    = Math.min(perRow, TOTAL - rowStart);
-  zoomIdxInRow   = (zoomIdxInRow + dir + count) % count;
+  zoomGlobalIdx = (zoomGlobalIdx + dir + TOTAL) % TOTAL;
   renderZoom();
 }
 
@@ -639,73 +617,69 @@ function renderZoom() {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
 
-  // Active card size in zoom view
-  const ZW = Math.min(250, Math.round(vw * 0.56));
-  const ZH = Math.round(ZW * (BASE_H / BASE_W));
+  /* Active card dimensions — max 42 vw, capped at 260px */
+  const ZW = Math.min(260, Math.round(vw * 0.42));
+  const ZH = Math.round(ZW * BASE_H / BASE_W);
 
-  // Scale/opacity for each distance slot: -2, -1, 0, +1, +2
-  const SCALES   = [0.36, 0.58, 1.0, 0.58, 0.36];
-  const OPACITIES = [0.22, 0.62, 1.0, 0.62, 0.22];
-  const GAP = 20;   // gap between card edges in zoom view
+  /* Compute actual pin height for this card width */
+  const pinW_px = Math.max(14, Math.round(ZW * 0.27));
+  const pinH_px = Math.round(pinW_px * 0.82);
 
-  // Width per slot
+  const STRING_Y = 26;   // string line Y within strip
+
+  /* Center the card body (not the string) at 50% vh */
+  const contentCenterFromStripTop = STRING_Y + pinH_px + 4 + ZH / 2;
+  const stripTop = Math.round(vh / 2 - contentCenterFromStripTop);
+
+  /* Scale / opacity curve for slots -2 … +2 */
+  const SCALES    = [0.34, 0.56, 1.0, 0.56, 0.34];
+  const OPACITIES = [0.18, 0.58, 1.0, 0.58, 0.18];
+  const ZIDX      = [1,    2,    5,   2,    1   ];   // active on top
+  const GAP_PX    = 24;
+
+  /* Slot widths */
   const SW = SCALES.map(s => ZW * s);
 
-  // X centers relative to viewport center (slot 0 = active = vw/2)
-  const CX = [0, 0, 0, 0, 0];
+  /* Slot centre X offsets from viewport mid */
+  const CX = new Array(5).fill(0);
   CX[2] = 0;
-  CX[1] = -(SW[2] / 2 + GAP + SW[1] / 2);
-  CX[3] = +(SW[2] / 2 + GAP + SW[3] / 2);
-  CX[0] =   CX[1] - SW[1] / 2 - GAP - SW[0] / 2;
-  CX[4] =   CX[3] + SW[3] / 2 + GAP + SW[4] / 2;
+  CX[1] = -(SW[2] / 2 + GAP_PX + SW[1] / 2);
+  CX[3] =  (SW[2] / 2 + GAP_PX + SW[3] / 2);
+  CX[0] =   CX[1] - SW[1] / 2 - GAP_PX - SW[0] / 2;
+  CX[4] =   CX[3] + SW[3] / 2 + GAP_PX + SW[4] / 2;
 
-  const STRING_Y = 30;
   const outer = document.getElementById('zoom-strip-outer');
   outer.innerHTML = '';
+  outer.style.top = stripTop + 'px';
 
-  /* String line across full width */
-  const svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svgEl.style.cssText =
-    `position:absolute;top:0;left:0;width:100%;height:${STRING_Y + 12}px;` +
-    `pointer-events:none;overflow:visible`;
-  const lineEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  lineEl.setAttribute('d', `M 0 ${STRING_Y} L ${vw} ${STRING_Y}`);
-  lineEl.setAttribute('stroke', '#9C8B78');
-  lineEl.setAttribute('stroke-width', '1.6');
-  lineEl.setAttribute('fill', 'none');
-  lineEl.setAttribute('opacity', '.55');
-  svgEl.appendChild(lineEl);
+  /* String — same rope style as gallery, slight sag */
+  const sagPx = 8;
+  const mntL  = 18, mntR = vw - 18;
+  const { svgEl } = makeStringSVG(vw, STRING_Y, sagPx, mntL, mntR);
   outer.appendChild(svgEl);
 
-  /* Photos */
-  const rowStart = zoomRow * perRow;
-  const count    = Math.min(perRow, TOTAL - rowStart);
+  /* Render slots -2 through +2, wrapping photo indices */
+  for (let offset = -2; offset <= 2; offset++) {
+    const gIdx  = (zoomGlobalIdx + offset + TOTAL) % TOTAL;
+    const si    = offset + 2;   // 0–4
+    const w     = SW[si];
+    const h     = Math.round(w * BASE_H / BASE_W);
+    const imgH  = h - PAD_T - PAD_B;
+    const rot   = getRot(gIdx);
+    const xLeft = vw / 2 + CX[si] - w / 2;
 
-  for (let i = 0; i < count; i++) {
-    const slot = i - zoomIdxInRow;         // position relative to active
-    if (Math.abs(slot) > 2) continue;      // only show ±2
-
-    const si        = slot + 2;            // index into SCALES/CX (0-4)
-    const globalIdx = rowStart + i;
-    const w         = SW[si];
-    const h         = Math.round(w * BASE_H / BASE_W);
-    const opacity   = OPACITIES[si];
-    const rot       = getRot(globalIdx);
-    const xLeft     = vw / 2 + CX[si] - w / 2;   // left edge of photo div
-    const imgH      = h - PAD_T - PAD_B;
-
-    // Grab the img src from the live gallery
+    /* Get src from gallery or fall back to placeholder */
     const galleryWraps = document.querySelectorAll('.photo-wrap');
-    const galleryImg   = galleryWraps[globalIdx]
-      ? galleryWraps[globalIdx].querySelector('img')
-      : null;
-    const src = galleryImg ? galleryImg.src : placeholder(globalIdx);
+    const galleryImg   = galleryWraps[gIdx]?.querySelector('img');
+    const src = galleryImg ? galleryImg.src : placeholder(gIdx);
 
     const pw = document.createElement('div');
-    pw.className = 'z-photo' + (slot === 0 ? ' active-slot' : '');
+    pw.className = 'z-photo' + (offset === 0 ? ' active-slot' : '');
     pw.style.cssText =
       `left:${xLeft}px;top:${STRING_Y}px;width:${w}px;` +
-      `opacity:${opacity};transform:rotate(${rot}deg);`;
+      `opacity:${OPACITIES[si]};` +
+      `transform:rotate(${rot}deg);` +
+      `z-index:${ZIDX[si]};`;
 
     pw.innerHTML = pinSVG(w);
 
@@ -716,233 +690,247 @@ function renderZoom() {
       `padding:${PAD_T}px ${PAD_S}px ${PAD_B}px;`;
 
     const img = document.createElement('img');
-    img.src    = src;
-    img.alt    = `Wedding photo ${globalIdx + 1}`;
+    img.src   = src;
+    img.alt   = `Wedding photo ${gIdx + 1}`;
     img.style.cssText = `display:block;width:100%;height:${imgH}px;object-fit:cover;`;
     card.appendChild(img);
     pw.appendChild(card);
 
-    // Clicking a neighbour shifts active
-    if (slot !== 0) {
-      const capturedI = i;
+    /* Clicking a neighbour navigates to it */
+    if (offset !== 0) {
+      const captured = gIdx;
       pw.addEventListener('click', e => {
         e.stopPropagation();
-        zoomIdxInRow = capturedI;
+        zoomGlobalIdx = captured;
         renderZoom();
-        updateZoomCount();
       });
     }
 
     outer.appendChild(pw);
   }
 
-  updateZoomCount();
-}
-
-function updateZoomCount() {
-  const globalIdx = zoomRow * perRow + zoomIdxInRow;
+  /* Counter */
   document.getElementById('zoom-count').textContent =
-    `${globalIdx + 1} \u00b7 ${TOTAL}`;
+    `${zoomGlobalIdx + 1} \u00b7 ${TOTAL}`;
 }
 
-/* ───────────────────────────────────────
-   FLOWER POSITIONING
-─────────────────────────────────────── */
-function setupFlowers() {
-  const vw  = window.innerWidth;
-  const vh  = window.innerHeight;
-  const cx  = vw / 2;
-  const cy  = vh / 2;
+/* ═══════════════════════════════════════════
+   FLOWERS
+═══════════════════════════════════════════ */
 
-  // Approximate card bounds (card is centered)
+/* Hydrangeas — frame the modal card, disappear with it */
+function positionHydrangeas() {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const cx = vw / 2, cy = vh / 2;
   const cardW = Math.min(580, Math.max(300, vw * 0.52));
-  const cardH = cardW * 0.56; // rough aspect of modal card
-  const cl  = cx - cardW / 2;
-  const cr  = cx + cardW / 2;
-  const ct  = cy - cardH / 2;
-  const cb  = cy + cardH / 2;
+  const cardH = cardW * 0.56;
+  const cl = cx - cardW / 2, cr = cx + cardW / 2;
+  const ct = cy - cardH / 2, cb = cy + cardH / 2;
+  const hW = Math.min(320, Math.round(vw * 0.42));
+  const sc = Math.min(1.0, vw / 680);
 
-  // Hydrangea sizes (corner garlands – large, prominent)
-  const hW  = Math.min(340, Math.round(vw * 0.44));
-  // Stem flower sizes
-  const sW  = Math.min(110, Math.round(vw * 0.17));
-  const sSm = Math.min(80,  Math.round(vw * 0.13));
+  const h1 = document.getElementById('f-h1');
+  const h2 = document.getElementById('f-h2');
+  if (h1) {
+    h1.style.width     = hW + 'px';
+    h1.style.transform = `translate(${cl - hW * 0.30}px,${ct - hW * 0.14}px) rotate(0deg) scale(${sc})`;
+    h1.style.opacity   = '1';
+  }
+  if (h2) {
+    h2.style.width     = hW + 'px';
+    h2.style.transform = `translate(${cr - hW * 0.70}px,${cb - hW * 0.58}px) rotate(180deg) scale(${sc})`;
+    h2.style.opacity   = '1';
+  }
+}
 
-  // Compute small random scatter offsets (once per page load)
-  const o = () => rnd(22);
+function dismissHydrangeas() {
+  ['f-h1', 'f-h2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.transition = 'opacity .55s ease';
+    el.style.opacity    = '0';
+    setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 650);
+  });
+}
 
-  // Define each flower: initial transform (near card) → final transform (at page edge)
-  flowerData = [
-    /* ── Hydrangeas: frame the card corners ── */
-    {
-      id: 'f-h1',
-      w:  hW,
-      iT: `translate(${cl - hW * 0.28}px, ${ct - hW * 0.18}px) rotate(0deg) scale(${Math.min(1.0, vw / 700)})`,
-      fT: `translate(${-hW * 0.18}px, ${-hW * 0.14}px) rotate(-2deg) scale(${vw < 768 ? 0.62 : 0.88})`
-    },
-    {
-      id: 'f-h2',
-      w:  hW,
-      iT: `translate(${cr - hW * 0.72}px, ${cb - hW * 0.52}px) rotate(180deg) scale(${Math.min(1.0, vw / 700)})`,
-      fT: `translate(${vw - hW * 0.82}px, ${vh - hW * 0.78}px) rotate(178deg) scale(${vw < 768 ? 0.62 : 0.88})`
-    },
+/* Stem flowers — random positions around page edges on every load */
+function positionStemFlowers() {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
 
-    /* ── Stem flowers: scattered around card perimeter ── */
+  const sW  = Math.min(120, Math.round(vw * 0.15));
+  const sSm = Math.min(90,  Math.round(vw * 0.11));
+  const sTy = Math.min(70,  Math.round(vw * 0.09));  // tiny red rose
+
+  /* Each stem flower has a base zone + large random jitter so every load looks different.
+     Positions are intentionally near page edges (negative x/y values are fine — overflow hidden on body). */
+  const stems = [
     {
-      id: 'f-dah',
-      w:  sW,
-      iT: `translate(${cr + 10 + o()}px, ${ct + 20 + o()}px) rotate(14deg) scale(.72)`,
-      fT: `translate(${vw - sW - 14 + o()}px, ${vh * 0.22 + o()}px) rotate(11deg) scale(.97)`
+      id: 'f-dah',   w: sW,
+      /* right edge, upper third */
+      bx: vw - sW * 0.55, by: vh * 0.08,
+      br: 10, jx: 60, jy: 80, jr: 14
     },
     {
-      id: 'f-sun',
-      w:  sW,
-      iT: `translate(${cl - sW - 14 + o()}px, ${cb - sW * 0.6 + o()}px) rotate(-11deg) scale(.7)`,
-      fT: `translate(${8 + o()}px, ${vh * 0.44 + o()}px) rotate(-9deg) scale(.96)`
+      id: 'f-sun',   w: sW,
+      /* left edge, mid */
+      bx: -sW * 0.38, by: vh * 0.36,
+      br: -8, jx: 40, jy: 90, jr: 12
     },
     {
-      id: 'f-wh1',
-      w:  sSm,
-      iT: `translate(${cx - sSm * 0.4 + o()}px, ${ct - sSm * 1.6 + o()}px) rotate(4deg) scale(.7)`,
-      fT: `translate(${vw * 0.38 + o()}px, ${-10 + o()}px) rotate(3deg) scale(.95)`
+      id: 'f-wh1',   w: sSm,
+      /* top edge, centre-left */
+      bx: vw * 0.28, by: -sSm * 0.15,
+      br: 3, jx: vw * 0.12, jy: 30, jr: 10
     },
     {
-      id: 'f-rose2',
-      w:  sW,
-      iT: `translate(${cl - sW - 8 + o()}px, ${ct + 10 + o()}px) rotate(-9deg) scale(.68)`,
-      fT: `translate(${6 + o()}px, ${vh * 0.17 + o()}px) rotate(-7deg) scale(.9)`
+      id: 'f-rose2', w: sW,
+      /* left edge, upper */
+      bx: -sW * 0.32, by: vh * 0.14,
+      br: -7, jx: 35, jy: 70, jr: 12
     },
     {
-      id: 'f-wh2',
-      w:  sSm,
-      iT: `translate(${cl - sSm - 10 + o()}px, ${cy + sSm * 0.2 + o()}px) rotate(-14deg) scale(.65)`,
-      fT: `translate(${10 + o()}px, ${vh * 0.7 + o()}px) rotate(-12deg) scale(.9)`
+      id: 'f-wh2',   w: sSm,
+      /* left edge, lower */
+      bx: -sSm * 0.35, by: vh * 0.60,
+      br: -13, jx: 30, jy: 80, jr: 14
     },
     {
-      id: 'f-red',
-      w:  sSm,
-      iT: `translate(${cx + 30 + o()}px, ${cb + 8 + o()}px) rotate(9deg) scale(.62)`,
-      fT: `translate(${vw * 0.54 + o()}px, ${vh - sSm + o()}px) rotate(7deg) scale(.86)`
+      id: 'f-red',   w: sSm,
+      /* bottom edge, centre-right */
+      bx: vw * 0.50, by: vh - sSm * 0.28,
+      br: 7, jx: vw * 0.14, jy: 28, jr: 10
     },
-    /* Red rose: small accent near bottom-right (used sparingly) */
     {
-      id: 'f-rose1',
-      w:  Math.round(sSm * 0.75),
-      iT: `translate(${cr + 8 + o()}px, ${cb - 20 + o()}px) rotate(6deg) scale(.48)`,
-      fT: `translate(${vw - sSm * 0.6 + o()}px, ${vh * 0.68 + o()}px) rotate(4deg) scale(.56)`
+      id: 'f-rose1', w: sTy,
+      /* right edge, lower — small red rose, used sparingly */
+      bx: vw - sTy * 0.50, by: vh * 0.60,
+      br: 5, jx: 28, jy: 70, jr: 12
     }
   ];
 
-  flowerData.forEach(f => {
+  stems.forEach(f => {
     const el = document.getElementById(f.id);
     if (!el) return;
+    /* Fresh Math.random() on every call = different each page load */
+    const dx = (Math.random() - 0.5) * 2 * f.jx;
+    const dy = (Math.random() - 0.5) * 2 * f.jy;
+    const dr = (Math.random() - 0.5) * 2 * f.jr;
+    const ds = 0.88 + Math.random() * 0.24;   // 0.88–1.12 scale
     el.style.width     = f.w + 'px';
-    el.style.transform = f.iT;
+    el.style.transform = `translate(${f.bx + dx}px,${f.by + dy}px) rotate(${f.br + dr}deg) scale(${ds})`;
   });
 }
 
-function animateFlowersOut() {
-  flowerData.forEach((f, i) => {
-    const el = document.getElementById(f.id);
-    if (!el) return;
-    // Stagger each flower slightly for a natural scatter feel
-    el.style.transition = `transform 1.25s cubic-bezier(.4,0,.2,1) ${i * 0.055}s`;
-    el.style.transform  = f.fT;
-  });
-}
-
-/* ───────────────────────────────────────
-   REVEAL GALLERY
-─────────────────────────────────────── */
+/* ═══════════════════════════════════════════
+   REVEAL
+═══════════════════════════════════════════ */
 function revealGallery() {
   if (revealed) return;
   revealed = true;
 
-  // Dismiss modal
+  /* Dismiss modal */
   const overlay = document.getElementById('modal-overlay');
   overlay.classList.add('hiding');
-  setTimeout(() => overlay.remove(), 850);
+  setTimeout(() => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 850);
 
-  // Unblur gallery + settle photos
+  /* Hydrangeas disappear with the card */
+  dismissHydrangeas();
+
+  /* Unblur gallery */
   document.getElementById('gallery-wrapper').classList.add('revealed');
 
-  // Scatter flowers to page edges simultaneously
-  animateFlowersOut();
-
-  // Show surprise button
+  /* Show surprise button */
   document.getElementById('surprise-btn').classList.add('visible');
 }
 
-/* ───────────────────────────────────────
-   TITLE ANIMATION  ("The one where…")
-─────────────────────────────────────── */
+/* ═══════════════════════════════════════════
+   TITLE ANIMATION
+═══════════════════════════════════════════ */
 function startTitleAnimation() {
-  // Wait 2.2s, then animate strikethrough
   setTimeout(() => {
+    /* 1. Animate strikethrough across "turns 30" */
     document.getElementById('js-strike').classList.add('struck');
-    // Wedding reveal fades in after strikethrough finishes
+
+    /* 2. After strikethrough completes, show reveal + date + button simultaneously */
     setTimeout(() => {
       document.getElementById('js-reveal').classList.add('show');
-      document.getElementById('js-tagline').classList.add('show');
+      document.getElementById('js-date').classList.add('show');
+      document.querySelector('.modal-divider').classList.add('show');
+      document.getElementById('reveal-btn').classList.add('show');
     }, 850);
   }, 2200);
 }
 
-/* ───────────────────────────────────────
+/* ═══════════════════════════════════════════
+   TOUCH SWIPE  (zoom overlay)
+═══════════════════════════════════════════ */
+let touchStartX = 0, touchStartY = 0;
+const zoomEl = document.getElementById('zoom-overlay');
+zoomEl.addEventListener('touchstart', e => {
+  touchStartX = e.changedTouches[0].clientX;
+  touchStartY = e.changedTouches[0].clientY;
+}, { passive: true });
+zoomEl.addEventListener('touchend', e => {
+  if (zoomGlobalIdx === -1) return;
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  /* Only trigger on predominantly horizontal swipes over 44px */
+  if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 44) {
+    navZoom(dx < 0 ? 1 : -1);
+  }
+}, { passive: true });
+
+/* ═══════════════════════════════════════════
    EVENT LISTENERS
-─────────────────────────────────────── */
+═══════════════════════════════════════════ */
 document.getElementById('reveal-btn').addEventListener('click', revealGallery);
 
-// Zoom: clicking the dark overlay closes
-document.getElementById('zoom-overlay').addEventListener('click', e => {
-  // Only close if not clicking a z-photo, button or arrow
+zoomEl.addEventListener('click', e => {
   if (!e.target.closest('.z-photo') &&
       !e.target.closest('#zoom-close') &&
       !e.target.closest('.zoom-arrow')) {
     closeZoom();
   }
 });
-document.getElementById('zoom-close').addEventListener('click', e => { e.stopPropagation(); closeZoom(); });
-document.getElementById('zoom-prev').addEventListener('click', e => { e.stopPropagation(); navZoom(-1); });
-document.getElementById('zoom-next').addEventListener('click', e => { e.stopPropagation(); navZoom(1); });
-
-document.getElementById('surprise-btn').addEventListener('click', () => {
-  const idx = Math.floor(Math.random() * TOTAL);
-  openZoom(Math.floor(idx / perRow), idx % perRow);
+document.getElementById('zoom-close').addEventListener('click', e => {
+  e.stopPropagation(); closeZoom();
+});
+document.getElementById('zoom-prev').addEventListener('click', e => {
+  e.stopPropagation(); navZoom(-1);
+});
+document.getElementById('zoom-next').addEventListener('click', e => {
+  e.stopPropagation(); navZoom(1);
 });
 
-// Keyboard nav
+document.getElementById('surprise-btn').addEventListener('click', () => {
+  openZoom(Math.floor(Math.random() * TOTAL));
+});
+
 document.addEventListener('keydown', e => {
-  if (zoomRow === -1) return;
+  if (zoomGlobalIdx === -1) return;
   if (e.key === 'ArrowLeft')  { e.preventDefault(); navZoom(-1); }
   if (e.key === 'ArrowRight') { e.preventDefault(); navZoom(1);  }
   if (e.key === 'Escape')     closeZoom();
 });
 
-// Resize: close zoom and rebuild
+/* Resize — rebuild gallery, reposition hydrangeas */
 let resizeTimer;
 window.addEventListener('resize', () => {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => {
-    if (zoomRow !== -1) closeZoom();
+    if (zoomGlobalIdx !== -1) closeZoom();
     buildGallery();
-    // If revealed, recalculate final flower positions (skip animation, jump to final)
-    if (revealed) {
-      setupFlowers(); // recalculates positions
-      flowerData.forEach(f => {
-        const el = document.getElementById(f.id);
-        if (el) { el.style.transition = 'none'; el.style.transform = f.fT; }
-      });
-    } else {
-      setupFlowers();
-    }
+    if (!revealed) positionHydrangeas();
   }, 280);
 });
 
-/* ───────────────────────────────────────
+/* ═══════════════════════════════════════════
    INIT
-─────────────────────────────────────── */
-setupFlowers();
+═══════════════════════════════════════════ */
+positionHydrangeas();
+positionStemFlowers();   /* fresh Math.random() positions every page load */
 buildGallery();
 startTitleAnimation();
 </script>
