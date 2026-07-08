@@ -66,18 +66,20 @@ body::after {
   cursor: pointer; z-index: 3; opacity: 0;
   display: flex; flex-direction: column; align-items: center;
 }
-.photo-wrap:hover .instax {
+.photo-wrap:hover img {
   box-shadow: 4px 10px 28px rgba(20,10,5,.38), 0 2px 8px rgba(0,0,0,.18);
   transform: translateY(-3px) scale(1.04);
 }
-.photo-wrap:active .instax { transform: scale(.97); }
-.instax {
+.photo-wrap:active img { transform: scale(.97); }
+
+/* img renders at its own natural ratio, capped to CARD_H on each axis so
+   portrait and landscape both read as the same real-world Instax card size */
+.photo-wrap img {
+  display: block; width: auto; height: auto;
   border-radius: 2px;
   box-shadow: 2px 6px 18px rgba(20,10,5,.26), 0 1px 4px rgba(0,0,0,.10);
   transition: box-shadow .26s ease, transform .26s ease;
-  overflow: hidden; /* clip rounded corners */
 }
-.instax img { display: block; width: 100%; height: auto; }
 
 @keyframes settle {
   0%   { opacity: 0; transform: rotate(var(--rot)) translateY(-28px) scale(.95); }
@@ -216,11 +218,12 @@ body::after {
 }
 .z-photo.active-slot { cursor: default; }
 .z-card {
+  display: inline-block; /* sizes to content — no imposed width or height */
   border-radius: 2px;
   box-shadow: 0 14px 44px rgba(0,0,0,.64), 0 3px 12px rgba(0,0,0,.36);
   margin-top: 4px; overflow: hidden;
 }
-.z-card img { display: block; width: 100%; height: auto; }
+.z-card img { display: block; width: auto; height: auto; }
 
 /* ── Instax develop animation ── */
 @keyframes photo-develop {
@@ -429,15 +432,16 @@ function cardScale() {
 }
 
 const HUES = [22, 36, 50, 188, 165, 142, 12, 28, 344, 330, 210, 58];
-function placeholder(i) {
-  const h = HUES[i % HUES.length], s = 13 + (i % 5) * 3, l = 70 + (i % 6) * 2;
+function placeholder(i, w, h) {
+  w = w || 94; h = h || 128;
+  const hue = HUES[i % HUES.length], s = 13 + (i % 5) * 3, l = 70 + (i % 6) * 2;
   const fg = Math.max(35, l - 30);
   return 'data:image/svg+xml,' + encodeURIComponent(
-    `<svg xmlns='http://www.w3.org/2000/svg' width='94' height='128'>` +
-    `<rect width='94' height='128' fill='hsl(${h},${s}%,${l}%)'/>` +
-    `<text x='47' y='64' text-anchor='middle' dominant-baseline='middle'` +
-    ` fill='hsl(${h},${s}%,${fg}%)' font-family='Georgia,serif' font-size='17' opacity='.42'>` +
-    `${i+1}</text></svg>`
+    `<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}'>` +
+    `<rect width='${w}' height='${h}' fill='hsl(${hue},${s}%,${l}%)'/>` +
+    `<text x='${w/2}' y='${h/2}' text-anchor='middle' dominant-baseline='middle'` +
+    ` fill='hsl(${hue},${s}%,${fg}%)' font-family='Georgia,serif'` +
+    ` font-size='${Math.round(h * .11)}' opacity='.42'>${i + 1}</text></svg>`
   );
 }
 
@@ -538,11 +542,13 @@ function buildGallery() {
   const ROW_H  = STRY + SAG + 22 + CARD_H + ROW_PAD_B;
 
   const vw   = window.innerWidth;
-  const n    = Math.max(2, Math.floor((vw + GAP) / (CARD_W + GAP)));
+  const n    = Math.max(2, Math.floor((vw + GAP) / (CARD_H + GAP)));
   perRow     = n;
   const rows = Math.ceil(TOTAL / n);
 
-  const totalW  = n * CARD_W + (n - 1) * GAP;
+  /* Slot width = CARD_H for every photo — portrait and landscape both fit within it */
+  const SLOT  = CARD_H;
+  const totalW  = n * SLOT + (n - 1) * GAP;
   const offsetX = (vw - totalW) / 2;
   const mntL    = Math.max(4, offsetX - 34);
   const mntR    = Math.min(vw - 4, offsetX + totalW + 34);
@@ -576,8 +582,8 @@ function buildGallery() {
 
     for (let i = 0; i < count; i++) {
       const idx  = r * n + i;
-      const xL   = offsetX + i * (CARD_W + GAP);
-      const xc   = xL + CARD_W / 2;
+      const xL   = offsetX + i * (SLOT + GAP);
+      const xc   = xL + SLOT / 2;
       const t    = (xc - mntL) / (mntR - mntL);
       const yOff = 4 * SAG * t * (1 - t);
       const del  = revealed ? 0 : Math.min(idx * 0.022, 2.6);
@@ -585,26 +591,24 @@ function buildGallery() {
       const pw = document.createElement('div');
       pw.className = 'photo-wrap';
       pw.style.cssText =
-        `left:${xL}px;top:${STRY+yOff}px;width:${CARD_W}px;` +
+        `left:${xL}px;top:${STRY+yOff}px;width:${SLOT}px;` +
         `--rot:0deg;--d:${del}s;`;
-      pw.innerHTML = pinSVG(CARD_W);
+      pw.innerHTML = pinSVG(SLOT);
 
-      const card = document.createElement('div');
-      card.className = 'instax';
-      card.style.cssText = `width:${CARD_W}px;margin-top:4px;`;
-
+      /* No wrapper div — img is the card. max-width = max-height = CARD_H so that:
+         portrait photos (taller) fill to height CARD_H, width ≈ CARD_W
+         landscape photos (wider) fill to width  CARD_H, height ≈ CARD_W
+         Both read as the same real-world Instax card size. */
       const img = document.createElement('img');
-      img.alt   = `Wedding photo ${idx+1}`;
-      img.width = CARD_W;
-      img.src   = placeholder(idx);
-      /* height:auto so portrait and landscape photos both render at natural ratio */
-      img.style.cssText = 'display:block;width:100%;height:auto;';
-      img.dataset.real = `images/${String(idx+1).padStart(3,'0')}.png`;
+      img.alt   = `Wedding photo ${idx + 1}`;
+      img.src   = placeholder(idx, CARD_W, CARD_H);
+      img.style.maxWidth  = CARD_H + 'px';
+      img.style.maxHeight = CARD_H + 'px';
+      img.dataset.real = `images/${String(idx + 1).padStart(3, '0')}.png`;
       img.dataset.idx  = idx;
       imgObserver.observe(img);
 
-      card.appendChild(img);
-      pw.appendChild(card);
+      pw.appendChild(img);
       pw.addEventListener('click', () => openZoom(idx));
       row.appendChild(pw);
     }
@@ -710,23 +714,23 @@ function renderZoom(mode) {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
 
-  const ZW = Math.min(260, Math.round(vw * 0.42));
-  /* Active photo aspect ratio: use cached orientation if available */
-  const activeIsLandscape = !!imgOrientations[zoomGlobalIdx];
-  const activeRatio = activeIsLandscape ? BASE_W / BASE_H : BASE_H / BASE_W;
-  const ZH = Math.round(ZW * activeRatio);
-  const pinW_px = Math.max(14, Math.round(ZW * 0.27));
+  /* ZSize: the "long edge" cap for the active photo — portrait fills to height ZSize,
+     landscape fills to width ZSize. Both read as the same real-world card size. */
+  const ZSize = Math.min(Math.round(Math.min(vw * 0.52, vh * 0.68)), 380);
+  const pinW_px = Math.max(14, Math.round(ZSize * 0.17));  /* pin scales with card */
   const pinH_px = Math.round(pinW_px * 0.82);
 
   const STRING_Y = 26;
-  const contentCenterFromTop = STRING_Y + pinH_px + 4 + ZH / 2;
+  /* Centre of the active card body (estimate: ZSize/2 height, regardless of orientation) */
+  const contentCenterFromTop = STRING_Y + pinH_px + 4 + ZSize / 2;
   const stripTop = Math.round(vh / 2 - contentCenterFromTop);
 
   const SCALES    = [0.34, 0.56, 1.0, 0.56, 0.34];
   const OPACITIES = [0.18, 0.58, 1.0, 0.58, 0.18];
   const ZIDX      = [1,    2,    5,   2,    1];
   const GAP_PX    = 24;
-  const SW = SCALES.map(s => ZW * s);
+  /* SW[si] = max constraint for that slot — same formula, just scaled from ZSize */
+  const SW = SCALES.map(s => Math.round(ZSize * s));
 
   const CX = new Array(5).fill(0);
   CX[2] = 0;
@@ -751,7 +755,7 @@ function renderZoom(mode) {
 
     const galleryWraps = document.querySelectorAll('.photo-wrap');
     const galleryImg   = galleryWraps[gIdx]?.querySelector('img');
-    const src = galleryImg ? galleryImg.src : placeholder(gIdx);
+    const src = galleryImg ? galleryImg.src : placeholder(gIdx, w, Math.round(w * BASE_H / BASE_W));
 
     const pw = document.createElement('div');
     pw.className = 'z-photo' + (offset === 0 ? ' active-slot' : '');
@@ -762,13 +766,14 @@ function renderZoom(mode) {
 
     const card = document.createElement('div');
     card.className = 'z-card';
-    card.style.cssText = `width:${w}px;`;
+    /* No fixed width/height — sizes to the img's natural dimensions × max constraint */
 
     const img = document.createElement('img');
     img.src   = src;
     img.alt   = `Wedding photo ${gIdx + 1}`;
-    /* height:auto — card sizes to the photo's own aspect ratio (portrait or landscape) */
-    img.style.cssText = 'display:block;width:100%;height:auto;';
+    /* Same max-both-axes trick as gallery: long edge fills to w, short edge scales naturally */
+    img.style.maxWidth  = w + 'px';
+    img.style.maxHeight = w + 'px';
 
     /* Apply develop animation to active photo */
     if (offset === 0 && mode !== 'fast') {
