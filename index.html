@@ -67,7 +67,10 @@ body::after {
   display: flex; flex-direction: column; align-items: center;
 }
 .photo-wrap:hover img {
-  box-shadow: 4px 10px 28px rgba(20,10,5,.38), 0 2px 8px rgba(0,0,0,.18);
+  /* drop-shadow (not box-shadow) so the shadow follows the card's alpha
+     silhouette instead of its rectangular bounding box — no halo around the
+     faint transparent fringe left from background removal */
+  filter: drop-shadow(4px 10px 28px rgba(20,10,5,.38)) drop-shadow(0 2px 8px rgba(0,0,0,.18));
   transform: translateY(-3px) scale(1.04);
 }
 .photo-wrap:active img { transform: scale(.97); }
@@ -77,8 +80,8 @@ body::after {
 .photo-wrap img {
   display: block; width: auto; height: auto;
   border-radius: 2px;
-  box-shadow: 2px 6px 18px rgba(20,10,5,.26), 0 1px 4px rgba(0,0,0,.10);
-  transition: box-shadow .26s ease, transform .26s ease;
+  filter: drop-shadow(2px 6px 18px rgba(20,10,5,.26)) drop-shadow(0 1px 4px rgba(0,0,0,.10));
+  transition: filter .26s ease, transform .26s ease;
 }
 
 @keyframes settle {
@@ -220,8 +223,11 @@ body::after {
 .z-card {
   display: inline-block; /* sizes to content — no imposed width or height */
   border-radius: 2px;
-  box-shadow: 0 14px 44px rgba(0,0,0,.64), 0 3px 12px rgba(0,0,0,.36);
-  margin-top: 4px; overflow: hidden;
+  /* drop-shadow follows the photo's alpha edge (see grid note) so the cut-out
+     card casts a shadow that hugs its silhouette, not a rectangular halo */
+  filter: drop-shadow(0 14px 44px rgba(0,0,0,.64)) drop-shadow(0 3px 12px rgba(0,0,0,.36));
+  overflow: hidden; position: relative; z-index: 1;
+  /* margin-top set per-slot in renderZoom() so the pin pinches the top edge */
 }
 .z-card img { display: block; width: auto; height: auto; }
 
@@ -413,6 +419,71 @@ let revealed      = false;
 let perRow        = 0;
 let zoomGlobalIdx = -1;
 const imgOrientations = {};   // idx → true if landscape (naturalWidth > naturalHeight)
+const fullCache       = {};   // idx → loaded full-res HTMLImageElement (once fetched)
+
+/* ═══════════════════════════════════════
+   IMAGE SOURCES
+   Grid hangs the small compressed thumbnail; the lightbox shows the
+   full-resolution original. Thumbnails are built by scripts/generate-thumbnails.mjs
+═══════════════════════════════════════ */
+function pad3(n)      { return String(n).padStart(3, '0'); }
+function fullSrc(idx) { return `images/${pad3(idx + 1)}.png`; }       // full-res original
+function thumbSrc(idx){ return `images/thumbs/${pad3(idx + 1)}.webp`; } // compressed grid thumb
+
+/* Fetch (and cache) the full-resolution original for one photo. Used to warm
+   the browser cache ahead of the lightbox so there's no visible quality drop. */
+function loadFull(idx, cb, priority) {
+  if (fullCache[idx]) { if (cb) cb(idx); return; }
+  const im = new Image();
+  if (priority) { try { im.fetchPriority = priority; } catch (e) {} }
+  im.onload = () => {
+    fullCache[idx] = im;
+    imgOrientations[idx] = im.naturalWidth > im.naturalHeight;
+    if (cb) cb(idx);
+  };
+  im.onerror = () => { if (cb) cb(idx); };
+  im.src = fullSrc(idx);
+}
+
+/* Warm the full-res cache for the active photo and its zoom neighbours, then
+   re-render the strip as each original arrives so the visible slot sharpens. */
+function ensureFullRes(centerIdx, span) {
+  span = span || 2;
+  for (let off = -span; off <= span; off++) {
+    const gIdx = (centerIdx + off + TOTAL) % TOTAL;
+    loadFull(gIdx, (loadedIdx) => {
+      if (zoomGlobalIdx !== -1 && Math.abs(loadedIdx - zoomGlobalIdx) <= 2) {
+        renderZoom('fast');
+      }
+    });
+  }
+}
+
+/* Low-priority background sweep: after the page settles, quietly pull every
+   full-res original into cache so a click into the lightbox is instant. Kept at
+   fetchpriority=low + light concurrency so it never competes with the thumbnails. */
+let preloadStarted = false;
+function preloadAllFull() {
+  if (preloadStarted) return;
+  preloadStarted = true;
+  const CONCURRENCY = 3;
+  let next = 0;
+  const pump = () => {
+    if (next >= TOTAL) return;
+    const idx = next++;
+    if (fullCache[idx]) { pump(); return; }
+    loadFull(idx, () => setTimeout(pump, 80), 'low');
+  };
+  for (let k = 0; k < CONCURRENCY; k++) pump();
+}
+function schedulePreload() {
+  const kick = () => preloadAllFull();
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(kick, { timeout: 4000 });
+  } else {
+    setTimeout(kick, 2500);
+  }
+}
 
 /* ═══════════════════════════════════════
    UTILITIES
@@ -474,12 +545,23 @@ const imgObserver = new IntersectionObserver(entries => {
 /* ═══════════════════════════════════════
    CLOTHESPIN SVG
 ═══════════════════════════════════════ */
+/* Height of the clothespin rendered by pinSVG() for a given card width —
+   kept in sync with the sizing math inside pinSVG(). */
+function pinHeight(cardW) {
+  return Math.round(Math.max(14, Math.round(cardW * 0.27)) * 0.82);
+}
+/* How far the photo tucks UP behind the pin's jaws, as a fraction of pin height.
+   Calibrated on a landscape card (thinnest top border) so the pin pinches only
+   the very top edge of the white border and never covers the photo content. */
+const PIN_BITE_GRID = 0.14;
+const PIN_BITE_ZOOM = 0.14;
+
 function pinSVG(cardW) {
   const pw = Math.max(14, Math.round(cardW * 0.27));
   const ph = Math.round(pw * 0.82);
   return `<svg viewBox="0 0 30 24" width="${pw}" height="${ph}"
     xmlns="http://www.w3.org/2000/svg"
-    style="display:block;margin:0 auto;flex-shrink:0">
+    style="display:block;margin:0 auto;flex-shrink:0;position:relative;z-index:2">
   <path d="M2,24 C2,18 6,12 10,9 C11,7 11,3 13,1 L15,1 L15,24Z" fill="#C4904C"/>
   <path d="M28,24 C28,18 24,12 20,9 C19,7 19,3 17,1 L15,1 L15,24Z" fill="#A87030"/>
   <line x1="15" y1="1" x2="15" y2="24" stroke="#D8A860" stroke-width=".6" opacity=".38"/>
@@ -604,7 +686,13 @@ function buildGallery() {
       img.src   = placeholder(idx, CARD_W, CARD_H);
       img.style.maxWidth  = CARD_H + 'px';
       img.style.maxHeight = CARD_H + 'px';
-      img.dataset.real = `images/${String(idx + 1).padStart(3, '0')}.png`;
+      /* Tuck the photo up so the pin (rendered in front, z-index 2) pinches the
+         very top edge of the card instead of floating above / covering content */
+      img.style.position  = 'relative';
+      img.style.zIndex    = '1';
+      img.style.marginTop = -Math.round(pinHeight(SLOT) * PIN_BITE_GRID) + 'px';
+      /* Grid loads the small compressed thumbnail, not the full-res original */
+      img.dataset.real = thumbSrc(idx);
       img.dataset.idx  = idx;
       imgObserver.observe(img);
 
@@ -644,44 +732,14 @@ function clearPhotoURL() {
 }
 
 /* ═══════════════════════════════════════
-   FORCE-LOAD  (bypasses lazy scroll trigger)
-═══════════════════════════════════════ */
-function forceLoad(idx, onDone) {
-  const galleryWraps = document.querySelectorAll('.photo-wrap');
-  const el = galleryWraps[idx]?.querySelector('img');
-  if (!el || !el.dataset.real) {
-    /* Already loaded — nothing to do */
-    if (onDone) onDone(idx);
-    return;
-  }
-  const real = el.dataset.real;
-  const probe = new Image();
-  probe.onload = () => {
-    imgOrientations[idx] = probe.naturalWidth > probe.naturalHeight;
-    el.src = real;
-    delete el.dataset.real;
-    if (onDone) onDone(idx);
-  };
-  probe.onerror = () => { if (onDone) onDone(idx); };
-  probe.src = real;
-}
-
-/* ═══════════════════════════════════════
    ZOOM
 ═══════════════════════════════════════ */
 function openZoom(globalIdx, skipDevelop) {
   zoomGlobalIdx = globalIdx;
 
-  /* Force-load active photo + 2 neighbours so no placeholder shows in lightbox */
-  for (let off = -2; off <= 2; off++) {
-    const gIdx = (globalIdx + off + TOTAL) % TOTAL;
-    forceLoad(gIdx, (loadedIdx) => {
-      /* If zoom is still open and the newly-loaded photo is visible, refresh the strip */
-      if (zoomGlobalIdx !== -1 && Math.abs(loadedIdx - zoomGlobalIdx) <= 2) {
-        renderZoom('fast');
-      }
-    });
-  }
+  /* Warm full-res for the active photo + 2 neighbours so the lightbox shows the
+     original at full quality (thumbnail is used only as an instant placeholder). */
+  ensureFullRes(globalIdx, 2);
 
   renderZoom(skipDevelop ? 'fast' : 'open');
   document.getElementById('zoom-overlay').classList.add('open');
@@ -698,13 +756,8 @@ function closeZoom() {
 
 function navZoom(dir) {
   zoomGlobalIdx = (zoomGlobalIdx + dir + TOTAL) % TOTAL;
-  /* Pre-load the leading edge so navigating quickly never shows a placeholder */
-  const leadIdx = (zoomGlobalIdx + dir * 2 + TOTAL) % TOTAL;
-  forceLoad(leadIdx, (loadedIdx) => {
-    if (zoomGlobalIdx !== -1 && Math.abs(loadedIdx - zoomGlobalIdx) <= 2) {
-      renderZoom('fast');
-    }
-  });
+  /* Warm the new active photo and the leading edge so navigation stays crisp */
+  ensureFullRes(zoomGlobalIdx, 2);
   renderZoom('nav');
   setPhotoURL(zoomGlobalIdx);
 }
@@ -717,12 +770,13 @@ function renderZoom(mode) {
   /* ZSize: the "long edge" cap for the active photo — portrait fills to height ZSize,
      landscape fills to width ZSize. Both read as the same real-world card size. */
   const ZSize = Math.min(Math.round(Math.min(vw * 0.52, vh * 0.68)), 380);
-  const pinW_px = Math.max(14, Math.round(ZSize * 0.17));  /* pin scales with card */
-  const pinH_px = Math.round(pinW_px * 0.82);
+  const pinH_px = pinHeight(ZSize);                        /* pin scales with card */
+  const zBite   = Math.round(pinH_px * PIN_BITE_ZOOM);     /* card tuck-up (see .z-card) */
 
   const STRING_Y = 26;
-  /* Centre of the active card body (estimate: ZSize/2 height, regardless of orientation) */
-  const contentCenterFromTop = STRING_Y + pinH_px + 4 + ZSize / 2;
+  /* Centre of the active card body (estimate: ZSize/2 height, regardless of orientation).
+     Card top sits (pinH - bite) below the string, matching the per-slot marginTop. */
+  const contentCenterFromTop = STRING_Y + (pinH_px - zBite) + ZSize / 2;
   const stripTop = Math.round(vh / 2 - contentCenterFromTop);
 
   const SCALES    = [0.34, 0.56, 1.0, 0.56, 0.34];
@@ -753,9 +807,19 @@ function renderZoom(mode) {
     const w     = SW[si];
     const xLeft = vw / 2 + CX[si] - w / 2;
 
-    const galleryWraps = document.querySelectorAll('.photo-wrap');
-    const galleryImg   = galleryWraps[gIdx]?.querySelector('img');
-    const src = galleryImg ? galleryImg.src : placeholder(gIdx, w, Math.round(w * BASE_H / BASE_W));
+    /* Source priority for the lightbox:
+       1. full-res original once cached (crisp — no visible quality drop)
+       2. the grid thumbnail already decoded on-screen (instant placeholder)
+       3. the thumbnail URL directly (small, loads fast)
+       ensureFullRes() upgrades the visible slots to full-res and re-renders. */
+    let src;
+    if (fullCache[gIdx]) {
+      src = fullSrc(gIdx);
+    } else {
+      const galleryWraps = document.querySelectorAll('.photo-wrap');
+      const galleryImg   = galleryWraps[gIdx]?.querySelector('img');
+      src = (galleryImg && !galleryImg.dataset.real) ? galleryImg.src : thumbSrc(gIdx);
+    }
 
     const pw = document.createElement('div');
     pw.className = 'z-photo' + (offset === 0 ? ' active-slot' : '');
@@ -766,7 +830,9 @@ function renderZoom(mode) {
 
     const card = document.createElement('div');
     card.className = 'z-card';
-    /* No fixed width/height — sizes to the img's natural dimensions × max constraint */
+    /* No fixed width/height — sizes to the img's natural dimensions × max constraint.
+       Tuck up behind the pin (in front, z-index 2) so it pinches the top edge. */
+    card.style.marginTop = -Math.round(pinHeight(w) * PIN_BITE_ZOOM) + 'px';
 
     const img = document.createElement('img');
     img.src   = src;
@@ -789,6 +855,7 @@ function renderZoom(mode) {
         e.stopPropagation();
         zoomGlobalIdx = captured;
         setPhotoURL(zoomGlobalIdx);
+        ensureFullRes(zoomGlobalIdx, 2);
         renderZoom('nav');
         document.getElementById('zoom-count').textContent =
           `${zoomGlobalIdx + 1} \u00b7 ${TOTAL}`;
@@ -872,6 +939,7 @@ function revealGallery() {
   document.getElementById('surprise-btn').classList.add('visible');
 
   startWiggle();
+  schedulePreload();   /* warm full-res originals in the background, low priority */
 }
 
 /* ═══════════════════════════════════════
