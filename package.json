@@ -1,0 +1,11 @@
+{
+  "name": "wedding-photos",
+  "private": true,
+  "description": "Jessica & Simon wedding gallery — static site + thumbnail build script",
+  "scripts": {
+    "thumbs": "node scripts/generate-thumbnails.mjs"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.3"
+  }
+}
