@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jessica &amp; Simon · Wedding Gallery</title>
+<link rel="icon" href="images/js_favicon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Cormorant+SC:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #7BBFBE;
+  --photo-bg: #F9F5EE;
+  --cream:    #F5ECD7;
+  --modal-bg: #69B4B2;
+  --rose:     #C8907A;
+  --rose-dk:  #B07A66;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { overflow-x: hidden; }
+
+body {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  background-color: var(--bg);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Grain overlay */
+body::after {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 9999; opacity: .033;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ─────────────────────────────────────────
+   STEM FLOWERS (behind everything)
+───────────────────────────────────────── */
+.flower-stem {
+  position: fixed; top: 0; left: 0;
+  pointer-events: none;
+  transform-origin: top left;
+  user-select: none;
+  z-index: 5;
+}
+
+/* ─────────────────────────────────────────
+   GALLERY
+───────────────────────────────────────── */
+#gallery-wrapper {
+  position: relative; z-index: 10;
+  padding: 16px 0 90px;
+  filter: blur(7px) brightness(.55);
+  transition: filter 1.6s ease;
+  will-change: filter;
+}
+#gallery-wrapper.revealed { filter: none; }
+.string-row { position: relative; width: 100%; }
+
+/* ─────────────────────────────────────────
+   PHOTO WRAPPERS
+───────────────────────────────────────── */
+.photo-wrap {
+  position: absolute;
+  transform-origin: top center;
+  cursor: pointer; z-index: 3; opacity: 0;
+  display: flex; flex-direction: column; align-items: center;
+}
+.photo-wrap:hover img {
+  /* drop-shadow (not box-shadow) so the shadow follows the card's alpha
+     silhouette instead of its rectangular bounding box — no halo around the
+     faint transparent fringe left from background removal */
+  filter: drop-shadow(4px 10px 28px rgba(20,10,5,.38)) drop-shadow(0 2px 8px rgba(0,0,0,.18));
+  transform: translateY(-3px) scale(1.04);
+}
+.photo-wrap:active img { transform: scale(.97); }
+
+/* img renders at its own natural ratio, capped to CARD_H on each axis so
+   portrait and landscape both read as the same real-world Instax card size */
+.photo-wrap img {
+  display: block; width: auto; height: auto;
+  border-radius: 2px;
+  filter: drop-shadow(2px 6px 18px rgba(20,10,5,.26)) drop-shadow(0 1px 4px rgba(0,0,0,.10));
+  transition: filter .26s ease, transform .26s ease;
+}
+
+@keyframes settle {
+  0%   { opacity: 0; transform: rotate(var(--rot)) translateY(-28px) scale(.95); }
+  55%  { opacity: 1; }
+  80%  { transform: rotate(var(--rot)) translateY(5px); }
+  100% { opacity: 1; transform: rotate(var(--rot)) translateY(0); }
+}
+#gallery-wrapper.revealed .photo-wrap {
+  animation: settle .9s cubic-bezier(.34,1.5,.64,1) forwards;
+  animation-delay: var(--d, 0s);
+}
+
+/* ─────────────────────────────────────────
+   MODAL
+───────────────────────────────────────── */
+#modal-overlay {
+  position: fixed; inset: 0; z-index: 195;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(40,80,80,.28);
+  backdrop-filter: blur(4px);
+  transition: opacity .75s ease;
+}
+#modal-overlay.hiding { opacity: 0; pointer-events: none; }
+
+#modal-card {
+  position: relative;
+  width: clamp(300px, 52vw, 580px);
+  padding: clamp(38px,5.5vw,72px) clamp(32px,5.5vw,68px) clamp(34px,5vw,60px);
+  background: var(--modal-bg);
+  border-radius: 3px; text-align: center;
+  box-shadow: 0 30px 90px rgba(8,36,36,.46), 0 5px 22px rgba(0,0,0,.22);
+  animation: cardIn .95s cubic-bezier(.22,1.4,.64,1) .5s both;
+  overflow: visible; /* let hydrangeas spill */
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: scale(.83) translateY(22px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Hydrangeas as card children */
+.card-hydrangea {
+  position: absolute;
+  pointer-events: none; user-select: none;
+  width: clamp(130px, 42%, 240px);
+  z-index: 0;
+}
+/* First spray frames the BOTTOM-LEFT corner: stem along the bottom edge,
+   blooms sweeping up-right toward the text (source art is already this corner). */
+#f-h1 { bottom: 0; left: 0; transform: translate(-24%, 18%) rotate(-20deg); transform-origin: center center; }
+/* Second spray is the point-symmetric partner in the TOP-RIGHT corner (f-h1 + 180°):
+   stem runs along the top/right edge, blooms sweeping down-left toward the text. */
+#f-h2 { top: 0; right: 0; transform: translate(24%, -18%) rotate(160deg); transform-origin: center center; }
+
+/* Text content above hydrangeas */
+.card-content { position: relative; z-index: 1; }
+
+/* Title lines — weight 500 italic, creamy */
+.title-line {
+  font-size: clamp(1.35rem, 3.9vw, 2.4rem);
+  font-weight: 500; font-style: italic;
+  color: var(--cream); line-height: 1.28;
+}
+.strike { position: relative; display: inline; }
+.strike::after {
+  content: '';
+  position: absolute; left: 0; right: 100%; top: 52%;
+  height: 1.5px; background: var(--cream);
+  transition: right .65s ease;
+}
+.strike.struck::after { right: 0; }
+
+#js-reveal {
+  display: block;
+  opacity: 0; transform: translateY(9px);
+  transition: opacity .95s ease, transform .95s ease;
+  margin-top: 4px;
+}
+#js-reveal.show { opacity: 1; transform: none; }
+
+#js-date {
+  font-size: clamp(.85rem, 1.9vw, 1.1rem);
+  font-weight: 500;
+  letter-spacing: .26em; text-transform: uppercase;
+  font-style: normal;
+  color: var(--cream);
+  margin-top: clamp(8px,1.4vw,16px);
+  opacity: 0; transition: opacity .95s ease .2s;
+}
+#js-date.show { opacity: .72; }
+
+.modal-divider {
+  width: 58px; height: 1px;
+  background: rgba(245,236,215,.34);
+  margin: clamp(20px,3.5vw,34px) auto;
+  opacity: 0; transition: opacity .9s ease;
+}
+.modal-divider.show { opacity: 1; }
+
+#reveal-btn {
+  background: transparent;
+  border: 1px solid rgba(245,236,215,.52);
+  color: var(--cream);
+  font-family: 'Cormorant SC', serif;
+  font-size: clamp(.66rem,1.4vw,.8rem);
+  font-weight: 500;
+  letter-spacing: .34em; text-transform: uppercase;
+  padding: clamp(10px,1.8vw,15px) clamp(28px,4vw,44px);
+  border-radius: 2px; cursor: pointer;
+  opacity: 0; pointer-events: none;
+  transition: background .25s, border-color .25s, transform .18s, opacity .9s ease;
+}
+#reveal-btn.show { opacity: 1; pointer-events: auto; }
+#reveal-btn:hover {
+  background: rgba(245,236,215,.14); border-color: var(--cream);
+  transform: translateY(-2px);
+}
+
+/* ─────────────────────────────────────────
+   ZOOM OVERLAY
+───────────────────────────────────────── */
+#zoom-overlay {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(6,18,18,.92);
+  backdrop-filter: blur(5px);
+  display: none; cursor: pointer;
+  overflow: hidden;
+}
+#zoom-overlay.open { display: block; animation: zfade .26s ease; }
+@keyframes zfade { from { opacity: 0; } to { opacity: 1; } }
+
+#zoom-strip-outer {
+  position: absolute; left: 0; right: 0;
+  overflow: visible; pointer-events: none; z-index: 1;
+}
+.z-photo {
+  position: absolute; pointer-events: auto;
+  transform-origin: top center;
+  display: flex; flex-direction: column; align-items: center;
+  cursor: pointer; will-change: transform, opacity;
+}
+.z-photo.active-slot { cursor: default; }
+.z-card {
+  display: inline-block; /* sizes to content — no imposed width or height */
+  border-radius: 2px;
+  /* drop-shadow follows the photo's alpha edge (see grid note) so the cut-out
+     card casts a shadow that hugs its silhouette, not a rectangular halo */
+  filter: drop-shadow(0 14px 44px rgba(0,0,0,.64)) drop-shadow(0 3px 12px rgba(0,0,0,.36));
+  overflow: hidden; position: relative; z-index: 1;
+  /* margin-top set per-slot in renderZoom() so the pin pinches the top edge */
+}
+.z-card img { display: block; width: auto; height: auto; }
+
+/* ── Instax develop animation ── */
+@keyframes photo-develop {
+  0%   { filter: brightness(8) saturate(0) blur(1.5px); }
+  18%  { filter: brightness(3.5) saturate(0.05) blur(0.5px); }
+  45%  { filter: brightness(1.6) saturate(0.5); }
+  72%  { filter: brightness(1.15) saturate(0.85); }
+  100% { filter: brightness(1) saturate(1); }
+}
+/* Long develop for opening, shorter for navigation */
+.z-card img.developing      { animation: photo-develop 2.4s ease-out forwards; }
+.z-card img.developing-fast { animation: photo-develop  .85s ease-out forwards; }
+
+/* Zoom chrome */
+#zoom-count {
+  position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
+  font-family: 'Cormorant SC', serif; font-size: .68rem; letter-spacing: .22em;
+  color: rgba(245,236,215,.36); z-index: 2; pointer-events: none;
+}
+#zoom-close {
+  position: fixed; top: 20px; right: 24px; z-index: 302;
+  background: none; border: none; color: rgba(245,236,215,.6);
+  font-size: 1.9rem; line-height: 1; cursor: pointer; padding: 6px;
+  transition: color .2s, transform .22s;
+}
+#zoom-close:hover { color: var(--cream); transform: rotate(90deg) scale(1.12); }
+
+.zoom-arrow {
+  position: fixed; top: 50%; transform: translateY(-50%); z-index: 302;
+  background: none; border: none; color: rgba(245,236,215,.5);
+  font-size: 3.4rem; line-height: 1; cursor: pointer; padding: 12px 16px;
+  user-select: none; transition: color .2s, transform .22s;
+}
+#zoom-prev { left: 10px; }
+#zoom-next { right: 10px; }
+#zoom-prev:hover { color: var(--cream); transform: translateY(-50%) translateX(-4px); }
+#zoom-next:hover { color: var(--cream); transform: translateY(-50%) translateX(4px); }
+
+/* Share button */
+#zoom-share {
+  position: fixed; top: 20px; left: 24px; z-index: 302;
+  background: none; border: 1px solid rgba(245,236,215,.28);
+  color: rgba(245,236,215,.6);
+  font-family: 'Cormorant SC', serif;
+  font-size: .62rem; letter-spacing: .22em; text-transform: uppercase;
+  padding: 8px 14px; border-radius: 2px; cursor: pointer;
+  transition: color .2s, border-color .2s, background .2s;
+  display: flex; align-items: center; gap: 6px;
+}
+#zoom-share:hover { color: var(--cream); border-color: rgba(245,236,215,.6); background: rgba(245,236,215,.07); }
+#zoom-share .share-icon { font-size: 1rem; line-height: 1; }
+#zoom-share .share-label { line-height: 1; }
+
+/* ─────────────────────────────────────────
+   SURPRISE BUTTON  — warm dusty rose
+───────────────────────────────────────── */
+@keyframes wiggle {
+  0%   { transform: translateY(0) rotate(0deg); }
+  14%  { transform: translateY(-5px) rotate(-3.5deg); }
+  28%  { transform: translateY(-2px) rotate(3deg); }
+  42%  { transform: translateY(-5px) rotate(-2.5deg); }
+  57%  { transform: translateY(-1px) rotate(2deg); }
+  71%  { transform: translateY(-4px) rotate(-1.5deg); }
+  85%  { transform: translateY(-1px) rotate(1deg); }
+  100% { transform: translateY(0) rotate(0deg); }
+}
+
+#surprise-btn {
+  position: fixed; bottom: 24px; right: 24px; z-index: 50;
+  background: rgba(200,144,122,.90);
+  border: 1px solid rgba(245,236,215,.45);
+  color: var(--cream);
+  font-family: 'Cormorant SC', serif;
+  font-size: .68rem; font-weight: 500; letter-spacing: .26em; text-transform: uppercase;
+  padding: 12px 22px; border-radius: 2px; cursor: pointer;
+  opacity: 0; pointer-events: none;
+  transition: opacity .7s, background .22s;
+  box-shadow: 0 4px 18px rgba(80,20,10,.28);
+}
+#surprise-btn.visible { opacity: 1; pointer-events: auto; }
+#surprise-btn:hover { background: rgba(176,122,102,1); }
+#surprise-btn.wiggling { animation: wiggle .65s ease-in-out; }
+
+/* ─────────────────────────────────────────
+   PARTICLE BURST
+───────────────────────────────────────── */
+.burst-particle {
+  position: fixed; pointer-events: none; z-index: 9998;
+  font-size: 18px; line-height: 1;
+  transform: translate(-50%, -50%);
+  will-change: transform, opacity;
+  transition: transform .75s ease-out, opacity .75s ease-out;
+}
+
+/* ─────────────────────────────────────────
+   RESPONSIVE
+───────────────────────────────────────── */
+@media (max-width: 480px) {
+  .zoom-arrow  { font-size: 2.4rem; padding: 10px 8px; }
+  #zoom-prev   { left: 2px; }
+  #zoom-next   { right: 2px; }
+  #surprise-btn { bottom: 16px; right: 16px; padding: 10px 16px; }
+  #zoom-share  { top: auto; bottom: 78px; left: 50%; transform: translateX(-50%); }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     STEM FLOWERS  (background layer, randomised by JS)
+════════════════════════════════════════ -->
+<img class="flower-stem" id="f-dah"   src="images/First_Dahlia.png"   alt="" draggable="false">
+<img class="flower-stem" id="f-sun"   src="images/First_Sun.png"      alt="" draggable="false">
+<img class="flower-stem" id="f-wh1"   src="images/First_White.png"    alt="" draggable="false">
+<img class="flower-stem" id="f-rose2" src="images/Second_Rose.png"    alt="" draggable="false">
+<img class="flower-stem" id="f-wh2"   src="images/Second_White.png"   alt="" draggable="false">
+<img class="flower-stem" id="f-red"   src="images/Third_Redish.png"   alt="" draggable="false">
+<img class="flower-stem" id="f-rose1" src="images/First_Rose.png"     alt="" draggable="false">
+
+<!-- ══════════════════════════════════════
+     LANDING MODAL
+════════════════════════════════════════ -->
+<div id="modal-overlay" role="dialog" aria-modal="true" aria-label="Welcome">
+  <div id="modal-card">
+
+    <!-- Hydrangeas live INSIDE the card — removed with it on dismiss -->
+    <img class="card-hydrangea" id="f-h1" src="images/First_Hydrangea.png"  alt="" draggable="false">
+    <img class="card-hydrangea" id="f-h2" src="images/Second_Hydrangea.png" alt="" draggable="false">
+
+    <!-- All text wrapped so it sits above the hydrangea images -->
+    <div class="card-content">
+      <p class="title-line">The one where Jessica</p>
+      <p class="title-line"><span class="strike" id="js-strike">turns 30</span></p>
+      <span class="title-line" id="js-reveal">...married Simon! 🤍</span>
+      <p id="js-date">June 15, 2024</p>
+      <div class="modal-divider"></div>
+      <button id="reveal-btn">View the Gallery</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     GALLERY
+════════════════════════════════════════ -->
+<div id="gallery-wrapper" role="main" aria-label="Wedding photo gallery"></div>
+
+<!-- ══════════════════════════════════════
+     SURPRISE BUTTON
+════════════════════════════════════════ -->
+<button id="surprise-btn" title="Open a random photo">✦ Surprise Me</button>
+
+<!-- ══════════════════════════════════════
+     ZOOM OVERLAY
+════════════════════════════════════════ -->
+<div id="zoom-overlay" role="dialog" aria-modal="true" aria-label="Photo viewer">
+  <div id="zoom-strip-outer"></div>
+  <div id="zoom-count"></div>
+  <button id="zoom-close" aria-label="Close viewer">✕</button>
+  <button class="zoom-arrow" id="zoom-prev" aria-label="Previous photo">&#8249;</button>
+  <button class="zoom-arrow" id="zoom-next" aria-label="Next photo">&#8250;</button>
+  <button id="zoom-share" aria-label="Copy link to this photo">
+    <span class="share-icon">⛓</span>
+    <span class="share-label" id="share-label">Share</span>
+  </button>
+</div>
+
+<script>
+/* ═══════════════════════════════════════
+   CONFIG
+═══════════════════════════════════════ */
+const TOTAL     = 85;
+const BASE_W    = 110;
+const BASE_H    = 168;
+const PAD_S     = 8;
+const PAD_T     = 10;
+const PAD_B     = 30;
+const BASE_GAP  = 12;
+const BASE_SAG  = 32;
+const BASE_STRY = 48;
+const ROW_PAD_B = 36;
+
+/* ═══════════════════════════════════════
+   STATE
+═══════════════════════════════════════ */
+let revealed      = false;
+let perRow        = 0;
+let zoomGlobalIdx = -1;
+const imgOrientations = {};   // idx → true if landscape (naturalWidth > naturalHeight)
+const fullCache       = {};   // idx → loaded full-res HTMLImageElement (once fetched)
+
+/* ═══════════════════════════════════════
+   IMAGE SOURCES
+   Grid hangs the small compressed thumbnail; the lightbox shows the
+   full-resolution original. Thumbnails are built by scripts/generate-thumbnails.mjs
+═══════════════════════════════════════ */
+function pad3(n)      { return String(n).padStart(3, '0'); }
+function fullSrc(idx) { return `images/${pad3(idx + 1)}.png`; }       // full-res original
+function thumbSrc(idx){ return `images/thumbs/${pad3(idx + 1)}.webp`; } // compressed grid thumb
+
+/* Fetch (and cache) the full-resolution original for one photo. Used to warm
+   the browser cache ahead of the lightbox so there's no visible quality drop. */
+function loadFull(idx, cb, priority) {
+  if (fullCache[idx]) { if (cb) cb(idx); return; }
+  const im = new Image();
+  if (priority) { try { im.fetchPriority = priority; } catch (e) {} }
+  im.onload = () => {
+    fullCache[idx] = im;
+    imgOrientations[idx] = im.naturalWidth > im.naturalHeight;
+    if (cb) cb(idx);
+  };
+  im.onerror = () => { if (cb) cb(idx); };
+  im.src = fullSrc(idx);
+}
+
+/* Warm the full-res cache for the active photo and its zoom neighbours, then
+   re-render the strip as each original arrives so the visible slot sharpens. */
+function ensureFullRes(centerIdx, span) {
+  span = span || 2;
+  for (let off = -span; off <= span; off++) {
+    const gIdx = (centerIdx + off + TOTAL) % TOTAL;
+    loadFull(gIdx, (loadedIdx) => {
+      if (zoomGlobalIdx !== -1 && Math.abs(loadedIdx - zoomGlobalIdx) <= 2) {
+        renderZoom('fast');
+      }
+    });
+  }
+}
+
+/* Low-priority background sweep: after the page settles, quietly pull every
+   full-res original into cache so a click into the lightbox is instant. Kept at
+   fetchpriority=low + light concurrency so it never competes with the thumbnails. */
+let preloadStarted = false;
+function preloadAllFull() {
+  if (preloadStarted) return;
+  preloadStarted = true;
+  const CONCURRENCY = 3;
+  let next = 0;
+  const pump = () => {
+    if (next >= TOTAL) return;
+    const idx = next++;
+    if (fullCache[idx]) { pump(); return; }
+    loadFull(idx, () => setTimeout(pump, 80), 'low');
+  };
+  for (let k = 0; k < CONCURRENCY; k++) pump();
+}
+function schedulePreload() {
+  const kick = () => preloadAllFull();
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(kick, { timeout: 4000 });
+  } else {
+    setTimeout(kick, 2500);
+  }
+}
+
+/* ═══════════════════════════════════════
+   UTILITIES
+═══════════════════════════════════════ */
+function srand(s) {
+  const x = Math.sin(s * 137.508 + 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
+function getRot(i) { return 0; }  // rotation removed — baked into the photo crops
+
+function cardScale() {
+  const vw = window.innerWidth;
+  if (vw >= 1400) return 1.55;
+  if (vw >= 1100) return 1.38;
+  if (vw >= 768)  return 1.22;
+  return 1.0;
+}
+
+const HUES = [22, 36, 50, 188, 165, 142, 12, 28, 344, 330, 210, 58];
+function placeholder(i, w, h) {
+  w = w || 94; h = h || 128;
+  const hue = HUES[i % HUES.length], s = 13 + (i % 5) * 3, l = 70 + (i % 6) * 2;
+  const fg = Math.max(35, l - 30);
+  return 'data:image/svg+xml,' + encodeURIComponent(
+    `<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}'>` +
+    `<rect width='${w}' height='${h}' fill='hsl(${hue},${s}%,${l}%)'/>` +
+    `<text x='${w/2}' y='${h/2}' text-anchor='middle' dominant-baseline='middle'` +
+    ` fill='hsl(${hue},${s}%,${fg}%)' font-family='Georgia,serif'` +
+    ` font-size='${Math.round(h * .11)}' opacity='.42'>${i + 1}</text></svg>`
+  );
+}
+
+/* ═══════════════════════════════════════
+   LAZY LOADING
+═══════════════════════════════════════ */
+const imgObserver = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    const img = e.target, real = img.dataset.real;
+    if (!real) { imgObserver.unobserve(img); return; }
+    const probe = new Image();
+    probe.onload = () => {
+      /* Cache landscape/portrait orientation from real dimensions */
+      const idxVal = parseInt(img.dataset.idx);
+      if (!isNaN(idxVal)) {
+        imgOrientations[idxVal] = probe.naturalWidth > probe.naturalHeight;
+      }
+      img.style.opacity = '0';
+      img.style.transition = 'opacity .45s';
+      img.src = real;
+      requestAnimationFrame(() => img.style.opacity = '1');
+    };
+    probe.src = real;
+    delete img.dataset.real;
+    imgObserver.unobserve(img);
+  });
+}, { rootMargin: '500px 0px' });
+
+/* ═══════════════════════════════════════
+   CLOTHESPIN SVG
+═══════════════════════════════════════ */
+/* Height of the clothespin rendered by pinSVG() for a given card width —
+   kept in sync with the sizing math inside pinSVG(). */
+function pinHeight(cardW) {
+  return Math.round(Math.max(14, Math.round(cardW * 0.27)) * 0.82);
+}
+/* How far the photo tucks UP behind the pin's jaws, as a fraction of pin height.
+   Calibrated on a landscape card (thinnest top border) so the pin pinches only
+   the very top edge of the white border and never covers the photo content. */
+const PIN_BITE_GRID = 0.14;
+const PIN_BITE_ZOOM = 0.14;
+
+function pinSVG(cardW) {
+  const pw = Math.max(14, Math.round(cardW * 0.27));
+  const ph = Math.round(pw * 0.82);
+  return `<svg viewBox="0 0 30 24" width="${pw}" height="${ph}"
+    xmlns="http://www.w3.org/2000/svg"
+    style="display:block;margin:0 auto;flex-shrink:0;position:relative;z-index:2">
+  <path d="M2,24 C2,18 6,12 10,9 C11,7 11,3 13,1 L15,1 L15,24Z" fill="#C4904C"/>
+  <path d="M28,24 C28,18 24,12 20,9 C19,7 19,3 17,1 L15,1 L15,24Z" fill="#A87030"/>
+  <line x1="15" y1="1" x2="15" y2="24" stroke="#D8A860" stroke-width=".6" opacity=".38"/>
+  <ellipse cx="15" cy="9.5" rx="5.5" ry="3.5" fill="#7A4E28" stroke="#5A3818" stroke-width=".5"/>
+  <ellipse cx="14" cy="8.6" rx="2" ry="1.1" fill="#9C6A40" opacity=".35"/>
+  <path d="M13,1 Q15,-2 17,1" stroke="#7A4E28" stroke-width="2.1" fill="none" stroke-linecap="round"/>
+</svg>`;
+}
+
+/* ═══════════════════════════════════════
+   STRING SVG  (reused by gallery + zoom)
+═══════════════════════════════════════ */
+function makeStringSVG(vw, strY, sagPx, mntL, mntR) {
+  const midX  = (mntL + mntR) / 2;
+  const ctrlY = strY + sagPx * 2;
+  const svgH  = strY + sagPx * 2 + 16;
+
+  const svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svgEl.setAttribute('width', vw);
+  svgEl.setAttribute('height', svgH);
+  svgEl.style.cssText = 'position:absolute;top:0;left:0;overflow:visible;pointer-events:none';
+
+  const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  pathEl.setAttribute('d', `M ${mntL} ${strY} Q ${midX} ${ctrlY} ${mntR} ${strY}`);
+  pathEl.setAttribute('stroke', '#9C8B78');
+  pathEl.setAttribute('stroke-width', '1.7');
+  pathEl.setAttribute('fill', 'none');
+  pathEl.setAttribute('opacity', '.76');
+  svgEl.appendChild(pathEl);
+
+  [mntL, mntR].forEach(x => {
+    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', x); c.setAttribute('cy', strY);
+    c.setAttribute('r', '4.5');
+    c.setAttribute('fill', '#7A6A58'); c.setAttribute('stroke', '#3E2E1A');
+    c.setAttribute('stroke-width', '.8');
+    svgEl.appendChild(c);
+    const sl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    sl.setAttribute('x1', x - 2.2); sl.setAttribute('y1', strY);
+    sl.setAttribute('x2', x + 2.2); sl.setAttribute('y2', strY);
+    sl.setAttribute('stroke', '#2A1A0A'); sl.setAttribute('stroke-width', '.9');
+    svgEl.appendChild(sl);
+  });
+
+  return { svgEl, pathEl };
+}
+
+/* ═══════════════════════════════════════
+   GALLERY BUILD
+═══════════════════════════════════════ */
+function buildGallery() {
+  const sc     = cardScale();
+  const CARD_W = Math.round(BASE_W * sc);
+  const CARD_H = Math.round(BASE_H * sc);
+  const IMG_W  = CARD_W - PAD_S * 2;
+  const IMG_H  = CARD_H - PAD_T - PAD_B;
+  const GAP    = Math.round(BASE_GAP * sc);
+  const SAG    = Math.round(BASE_SAG * sc);
+  const STRY   = Math.round(BASE_STRY * sc);
+  const ROW_H  = STRY + SAG + 22 + CARD_H + ROW_PAD_B;
+
+  const vw   = window.innerWidth;
+  const n    = Math.max(2, Math.floor((vw + GAP) / (CARD_H + GAP)));
+  perRow     = n;
+  const rows = Math.ceil(TOTAL / n);
+
+  /* Slot width = CARD_H for every photo — portrait and landscape both fit within it */
+  const SLOT  = CARD_H;
+  const totalW  = n * SLOT + (n - 1) * GAP;
+  const offsetX = (vw - totalW) / 2;
+  const mntL    = Math.max(4, offsetX - 34);
+  const mntR    = Math.min(vw - 4, offsetX + totalW + 34);
+
+  const wrap = document.getElementById('gallery-wrapper');
+  wrap.innerHTML = '';
+
+  for (let r = 0; r < rows; r++) {
+    const count = Math.min(n, TOTAL - r * n);
+    const row   = document.createElement('div');
+    row.className = 'string-row';
+    row.style.height = ROW_H + 'px';
+
+    const { svgEl, pathEl } = makeStringSVG(vw, STRY, SAG, mntL, mntR);
+    svgEl.style.zIndex = '2';
+
+    if (!revealed) {
+      const len = 2500;
+      if (r % 2 !== 0) {
+        pathEl.setAttribute('d',
+          `M ${mntR} ${STRY} Q ${vw/2} ${STRY + SAG*2} ${mntL} ${STRY}`);
+      }
+      pathEl.style.strokeDasharray  = len;
+      pathEl.style.strokeDashoffset = len;
+      pathEl.style.transition =
+        `stroke-dashoffset 1.35s cubic-bezier(.4,0,.2,1) ${r * 0.17}s`;
+      requestAnimationFrame(() =>
+        setTimeout(() => { pathEl.style.strokeDashoffset = '0'; }, 60));
+    }
+    row.appendChild(svgEl);
+
+    for (let i = 0; i < count; i++) {
+      const idx  = r * n + i;
+      const xL   = offsetX + i * (SLOT + GAP);
+      const xc   = xL + SLOT / 2;
+      const t    = (xc - mntL) / (mntR - mntL);
+      const yOff = 4 * SAG * t * (1 - t);
+      const del  = revealed ? 0 : Math.min(idx * 0.022, 2.6);
+
+      const pw = document.createElement('div');
+      pw.className = 'photo-wrap';
+      pw.style.cssText =
+        `left:${xL}px;top:${STRY+yOff}px;width:${SLOT}px;` +
+        `--rot:0deg;--d:${del}s;`;
+      pw.innerHTML = pinSVG(SLOT);
+
+      /* No wrapper div — img is the card. max-width = max-height = CARD_H so that:
+         portrait photos (taller) fill to height CARD_H, width ≈ CARD_W
+         landscape photos (wider) fill to width  CARD_H, height ≈ CARD_W
+         Both read as the same real-world Instax card size. */
+      const img = document.createElement('img');
+      img.alt   = `Wedding photo ${idx + 1}`;
+      img.src   = placeholder(idx, CARD_W, CARD_H);
+      img.style.maxWidth  = CARD_H + 'px';
+      img.style.maxHeight = CARD_H + 'px';
+      /* Tuck the photo up so the pin (rendered in front, z-index 2) pinches the
+         very top edge of the card instead of floating above / covering content */
+      img.style.position  = 'relative';
+      img.style.zIndex    = '1';
+      img.style.marginTop = -Math.round(pinHeight(SLOT) * PIN_BITE_GRID) + 'px';
+      /* Grid loads the small compressed thumbnail, not the full-res original */
+      img.dataset.real = thumbSrc(idx);
+      img.dataset.idx  = idx;
+      imgObserver.observe(img);
+
+      pw.appendChild(img);
+      pw.addEventListener('click', () => openZoom(idx));
+      row.appendChild(pw);
+    }
+    wrap.appendChild(row);
+  }
+
+  if (revealed) {
+    wrap.querySelectorAll('.photo-wrap').forEach(el => {
+      el.style.animation = 'none';
+      el.style.opacity   = '1';
+    });
+  }
+}
+
+/* ═══════════════════════════════════════
+   URL / SHARING
+═══════════════════════════════════════ */
+function getURLPhoto() {
+  const p = parseInt(new URLSearchParams(window.location.search).get('photo'));
+  return (!isNaN(p) && p >= 1 && p <= TOTAL) ? p - 1 : -1;
+}
+
+function setPhotoURL(idx) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('photo', idx + 1);
+  history.replaceState(null, '', url.toString());
+}
+
+function clearPhotoURL() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('photo');
+  history.replaceState(null, '', url.toString());
+}
+
+/* ═══════════════════════════════════════
+   ZOOM
+═══════════════════════════════════════ */
+function openZoom(globalIdx, skipDevelop) {
+  zoomGlobalIdx = globalIdx;
+
+  /* Warm full-res for the active photo + 2 neighbours so the lightbox shows the
+     original at full quality (thumbnail is used only as an instant placeholder). */
+  ensureFullRes(globalIdx, 2);
+
+  renderZoom(skipDevelop ? 'fast' : 'open');
+  document.getElementById('zoom-overlay').classList.add('open');
+  lockScroll();
+  setPhotoURL(globalIdx);
+}
+
+function closeZoom() {
+  document.getElementById('zoom-overlay').classList.remove('open');
+  unlockScroll();
+  zoomGlobalIdx = -1;
+  clearPhotoURL();
+}
+
+function navZoom(dir) {
+  zoomGlobalIdx = (zoomGlobalIdx + dir + TOTAL) % TOTAL;
+  /* Warm the new active photo and the leading edge so navigation stays crisp */
+  ensureFullRes(zoomGlobalIdx, 2);
+  renderZoom('nav');
+  setPhotoURL(zoomGlobalIdx);
+}
+
+function renderZoom(mode) {
+  // mode: 'open' (long develop), 'nav' (fast develop), 'fast' (no animation)
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  /* ZSize: the "long edge" cap for the active photo — portrait fills to height ZSize,
+     landscape fills to width ZSize. Both read as the same real-world card size. */
+  const ZSize = Math.min(Math.round(Math.min(vw * 0.52, vh * 0.68)), 380);
+  const pinH_px = pinHeight(ZSize);                        /* pin scales with card */
+  const zBite   = Math.round(pinH_px * PIN_BITE_ZOOM);     /* card tuck-up (see .z-card) */
+
+  const STRING_Y = 26;
+  /* Centre of the active card body (estimate: ZSize/2 height, regardless of orientation).
+     Card top sits (pinH - bite) below the string, matching the per-slot marginTop. */
+  const contentCenterFromTop = STRING_Y + (pinH_px - zBite) + ZSize / 2;
+  const stripTop = Math.round(vh / 2 - contentCenterFromTop);
+
+  const SCALES    = [0.34, 0.56, 1.0, 0.56, 0.34];
+  const OPACITIES = [0.18, 0.58, 1.0, 0.58, 0.18];
+  const ZIDX      = [1,    2,    5,   2,    1];
+  const GAP_PX    = 24;
+  /* SW[si] = max constraint for that slot — same formula, just scaled from ZSize */
+  const SW = SCALES.map(s => Math.round(ZSize * s));
+
+  const CX = new Array(5).fill(0);
+  CX[2] = 0;
+  CX[1] = -(SW[2]/2 + GAP_PX + SW[1]/2);
+  CX[3] =  (SW[2]/2 + GAP_PX + SW[3]/2);
+  CX[0] =   CX[1] - SW[1]/2 - GAP_PX - SW[0]/2;
+  CX[4] =   CX[3] + SW[3]/2 + GAP_PX + SW[4]/2;
+
+  const outer = document.getElementById('zoom-strip-outer');
+  outer.innerHTML = '';
+  outer.style.top = stripTop + 'px';
+
+  const sagPx = 8, mntL = 18, mntR = vw - 18;
+  const { svgEl } = makeStringSVG(vw, STRING_Y, sagPx, mntL, mntR);
+  outer.appendChild(svgEl);
+
+  for (let offset = -2; offset <= 2; offset++) {
+    const gIdx  = (zoomGlobalIdx + offset + TOTAL) % TOTAL;
+    const si    = offset + 2;
+    const w     = SW[si];
+    const xLeft = vw / 2 + CX[si] - w / 2;
+
+    /* Source priority for the lightbox:
+       1. full-res original once cached (crisp — no visible quality drop)
+       2. the grid thumbnail already decoded on-screen (instant placeholder)
+       3. the thumbnail URL directly (small, loads fast)
+       ensureFullRes() upgrades the visible slots to full-res and re-renders. */
+    let src;
+    if (fullCache[gIdx]) {
+      src = fullSrc(gIdx);
+    } else {
+      const galleryWraps = document.querySelectorAll('.photo-wrap');
+      const galleryImg   = galleryWraps[gIdx]?.querySelector('img');
+      src = (galleryImg && !galleryImg.dataset.real) ? galleryImg.src : thumbSrc(gIdx);
+    }
+
+    const pw = document.createElement('div');
+    pw.className = 'z-photo' + (offset === 0 ? ' active-slot' : '');
+    pw.style.cssText =
+      `left:${xLeft}px;top:${STRING_Y}px;width:${w}px;` +
+      `opacity:${OPACITIES[si]};z-index:${ZIDX[si]};`;
+    pw.innerHTML = pinSVG(w);
+
+    const card = document.createElement('div');
+    card.className = 'z-card';
+    /* No fixed width/height — sizes to the img's natural dimensions × max constraint.
+       Tuck up behind the pin (in front, z-index 2) so it pinches the top edge. */
+    card.style.marginTop = -Math.round(pinHeight(w) * PIN_BITE_ZOOM) + 'px';
+
+    const img = document.createElement('img');
+    img.src   = src;
+    img.alt   = `Wedding photo ${gIdx + 1}`;
+    /* Same max-both-axes trick as gallery: long edge fills to w, short edge scales naturally */
+    img.style.maxWidth  = w + 'px';
+    img.style.maxHeight = w + 'px';
+
+    /* Apply develop animation to active photo */
+    if (offset === 0 && mode !== 'fast') {
+      img.className = mode === 'open' ? 'developing' : 'developing-fast';
+    }
+
+    card.appendChild(img);
+    pw.appendChild(card);
+
+    if (offset !== 0) {
+      const captured = gIdx;
+      pw.addEventListener('click', e => {
+        e.stopPropagation();
+        zoomGlobalIdx = captured;
+        setPhotoURL(zoomGlobalIdx);
+        ensureFullRes(zoomGlobalIdx, 2);
+        renderZoom('nav');
+        document.getElementById('zoom-count').textContent =
+          `${zoomGlobalIdx + 1} \u00b7 ${TOTAL}`;
+      });
+    }
+
+    outer.appendChild(pw);
+  }
+
+  document.getElementById('zoom-count').textContent =
+    `${zoomGlobalIdx + 1} \u00b7 ${TOTAL}`;
+}
+
+/* ═══════════════════════════════════════
+   SCROLL LOCK
+═══════════════════════════════════════ */
+let _scrollY = 0;
+function lockScroll() {
+  _scrollY = window.scrollY;
+  document.body.style.overflow = 'hidden';
+  document.body.style.position = 'fixed';
+  document.body.style.top      = `-${_scrollY}px`;
+  document.body.style.width    = '100%';
+}
+function unlockScroll() {
+  document.body.style.overflow = '';
+  document.body.style.position = '';
+  document.body.style.top      = '';
+  document.body.style.width    = '';
+  window.scrollTo(0, _scrollY);
+}
+
+/* ═══════════════════════════════════════
+   FLOWERS
+═══════════════════════════════════════ */
+function positionStemFlowers() {
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const sW  = Math.min(120, Math.round(vw * 0.15));
+  const sSm = Math.min(90,  Math.round(vw * 0.11));
+  const sTy = Math.min(70,  Math.round(vw * 0.09));
+
+  const stems = [
+    { id:'f-dah',   w:sW,  bx:vw-sW*0.55,   by:vh*0.08,      br:10,  jx:60,      jy:80, jr:14 },
+    { id:'f-sun',   w:sW,  bx:-sW*0.38,     by:vh*0.36,      br:-8,  jx:40,      jy:90, jr:12 },
+    { id:'f-wh1',   w:sSm, bx:vw*0.28,      by:-sSm*0.15,    br:3,   jx:vw*0.12, jy:30, jr:10 },
+    { id:'f-rose2', w:sW,  bx:-sW*0.32,     by:vh*0.14,      br:-7,  jx:35,      jy:70, jr:12 },
+    { id:'f-wh2',   w:sSm, bx:-sSm*0.35,    by:vh*0.60,      br:-13, jx:30,      jy:80, jr:14 },
+    { id:'f-red',   w:sSm, bx:vw*0.50,      by:vh-sSm*0.28,  br:7,   jx:vw*0.14, jy:28, jr:10 },
+    { id:'f-rose1', w:sTy, bx:vw-sTy*0.50,  by:vh*0.60,      br:5,   jx:28,      jy:70, jr:12 }
+  ];
+
+  stems.forEach(f => {
+    const el = document.getElementById(f.id);
+    if (!el) return;
+    const dx = (Math.random() - 0.5) * 2 * f.jx;
+    const dy = (Math.random() - 0.5) * 2 * f.jy;
+    const dr = (Math.random() - 0.5) * 2 * f.jr;
+    const ds = 0.88 + Math.random() * 0.24;
+    el.style.width     = f.w + 'px';
+    el.style.transform =
+      `translate(${f.bx+dx}px,${f.by+dy}px) rotate(${f.br+dr}deg) scale(${ds})`;
+  });
+}
+
+/* ═══════════════════════════════════════
+   REVEAL GALLERY
+═══════════════════════════════════════ */
+function revealGallery() {
+  if (revealed) return;
+  revealed = true;
+
+  const overlay = document.getElementById('modal-overlay');
+  if (overlay) {
+    overlay.classList.add('hiding');
+    setTimeout(() => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 850);
+  }
+
+  unlockScroll();  /* restore scroll after modal dismissed */
+
+  document.getElementById('gallery-wrapper').classList.add('revealed');
+  document.getElementById('surprise-btn').classList.add('visible');
+
+  startWiggle();
+  schedulePreload();   /* warm full-res originals in the background, low priority */
+}
+
+/* ═══════════════════════════════════════
+   TITLE ANIMATION
+═══════════════════════════════════════ */
+function startTitleAnimation() {
+  setTimeout(() => {
+    document.getElementById('js-strike').classList.add('struck');
+    setTimeout(() => {
+      document.getElementById('js-reveal').classList.add('show');
+      document.getElementById('js-date').classList.add('show');
+      document.querySelector('.modal-divider').classList.add('show');
+      document.getElementById('reveal-btn').classList.add('show');
+    }, 400);
+  }, 1600);
+}
+
+/* ═══════════════════════════════════════
+   SURPRISE BUTTON — WIGGLE
+═══════════════════════════════════════ */
+function startWiggle() {
+  const doWiggle = () => {
+    const btn = document.getElementById('surprise-btn');
+    if (!btn) return;
+    btn.classList.remove('wiggling');
+    void btn.offsetWidth;  /* force reflow to restart animation */
+    btn.classList.add('wiggling');
+    btn.addEventListener('animationend', () => btn.classList.remove('wiggling'), { once: true });
+    setTimeout(doWiggle, 20000 + Math.random() * 10000);
+  };
+  setTimeout(doWiggle, 1600);
+}
+
+/* ═══════════════════════════════════════
+   PARTICLE BURST
+═══════════════════════════════════════ */
+function burstParticles(btnEl) {
+  const rect   = btnEl.getBoundingClientRect();
+  const cx     = rect.left + rect.width / 2;
+  const cy     = rect.top  + rect.height / 2;
+  const chars  = ['🤍','🌸','💕','🌷','✿','❀','🌺','🍃'];
+  const count  = 12;
+
+  for (let i = 0; i < count; i++) {
+    const el  = document.createElement('div');
+    el.className = 'burst-particle';
+    el.textContent = chars[i % chars.length];
+    const angle = (i / count) * Math.PI * 2 + Math.random() * 0.4;
+    const dist  = 55 + Math.random() * 90;
+    const dx    = Math.cos(angle) * dist;
+    const dy    = Math.sin(angle) * dist;
+    const rot   = (Math.random() - 0.5) * 360;
+    el.style.left    = cx + 'px';
+    el.style.top     = cy + 'px';
+    el.style.fontSize = (14 + Math.random() * 10) + 'px';
+    document.body.appendChild(el);
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        el.style.transform =
+          `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) rotate(${rot}deg)`;
+        el.style.opacity = '0';
+      });
+    });
+    setTimeout(() => el.remove(), 820);
+  }
+}
+
+/* ═══════════════════════════════════════
+   SWIPE (zoom overlay)
+═══════════════════════════════════════ */
+let touchStartX = 0, touchStartY = 0;
+const zoomEl = document.getElementById('zoom-overlay');
+zoomEl.addEventListener('touchstart', e => {
+  touchStartX = e.changedTouches[0].clientX;
+  touchStartY = e.changedTouches[0].clientY;
+}, { passive: true });
+zoomEl.addEventListener('touchend', e => {
+  if (zoomGlobalIdx === -1) return;
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  /* Swipe left = next (+1), swipe right = previous (-1) */
+  if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 44) {
+    navZoom(dx < 0 ? 1 : -1);
+  }
+}, { passive: true });
+
+/* ═══════════════════════════════════════
+   EVENT LISTENERS
+═══════════════════════════════════════ */
+document.getElementById('reveal-btn').addEventListener('click', revealGallery);
+
+zoomEl.addEventListener('click', e => {
+  if (!e.target.closest('.z-photo') &&
+      !e.target.closest('#zoom-close') &&
+      !e.target.closest('.zoom-arrow') &&
+      !e.target.closest('#zoom-share')) {
+    closeZoom();
+  }
+});
+document.getElementById('zoom-close').addEventListener('click', e => {
+  e.stopPropagation(); closeZoom();
+});
+document.getElementById('zoom-prev').addEventListener('click', e => {
+  e.stopPropagation(); navZoom(-1);
+});
+document.getElementById('zoom-next').addEventListener('click', e => {
+  e.stopPropagation(); navZoom(1);
+});
+
+document.getElementById('zoom-share').addEventListener('click', e => {
+  e.stopPropagation();
+  const url = new URL(window.location.href);
+  url.searchParams.set('photo', zoomGlobalIdx + 1);
+  navigator.clipboard.writeText(url.toString()).then(() => {
+    const label = document.getElementById('share-label');
+    label.textContent = 'Copied!';
+    setTimeout(() => { label.textContent = 'Share'; }, 2200);
+  }).catch(() => {
+    /* Fallback: prompt */
+    prompt('Copy this link:', url.toString());
+  });
+});
+
+document.getElementById('surprise-btn').addEventListener('click', function() {
+  burstParticles(this);
+  setTimeout(() => {
+    openZoom(Math.floor(Math.random() * TOTAL));
+  }, 280);
+});
+
+document.addEventListener('keydown', e => {
+  if (zoomGlobalIdx === -1) return;
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); navZoom(-1); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); navZoom(1);  }
+  if (e.key === 'Escape')     closeZoom();
+});
+
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if (zoomGlobalIdx !== -1) closeZoom();
+    buildGallery();
+  }, 280);
+});
+
+/* ═══════════════════════════════════════
+   INIT
+═══════════════════════════════════════ */
+/* Lock scroll while modal is visible */
+lockScroll();
+positionStemFlowers();
+buildGallery();
+
+/* If URL contains ?photo=N, skip modal and open photo directly */
+const urlPhoto = getURLPhoto();
+if (urlPhoto >= 0) {
+  revealGallery();
+  requestAnimationFrame(() => openZoom(urlPhoto, true));
+} else {
+  startTitleAnimation();
+}
+</script>
+</body>
+</html>
