@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Jessica &amp; Simon · Wedding Gallery</title>
+<link rel="icon" href="images/js_favicon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Cormorant+SC:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -129,8 +130,12 @@ body::after {
   width: clamp(130px, 42%, 240px);
   z-index: 0;
 }
-#f-h1, #pw-h1 { top: 0; left: 0; transform: translate(-24%, -18%); }
-#f-h2, #pw-h2 { bottom: 0; right: 0; transform: translate(24%, 20%) rotate(180deg); transform-origin: center center; }
+/* First spray frames the BOTTOM-LEFT corner: stem along the bottom edge,
+   blooms sweeping up-right toward the text. */
+#f-h1, #pw-h1 { bottom: 0; left: 0; transform: translate(-24%, 18%) rotate(-20deg); transform-origin: center center; }
+/* Second spray is the point-symmetric partner in the TOP-RIGHT corner (f-h1 + 180°):
+   stem along the top/right edge, blooms sweeping down-left toward the text. */
+#f-h2, #pw-h2 { top: 0; right: 0; transform: translate(24%, -18%) rotate(160deg); transform-origin: center center; }
 
 /* Text content above hydrangeas */
 .card-content { position: relative; z-index: 1; }
@@ -1057,8 +1062,8 @@ function startTitleAnimation() {
       document.getElementById('js-date').classList.add('show');
       document.querySelector('.modal-divider').classList.add('show');
       document.getElementById('reveal-btn').classList.add('show');
-    }, 850);
-  }, 2200);
+    }, 400);
+  }, 1600);
 }
 
 /* ═══════════════════════════════════════
