@@ -131,8 +131,9 @@ body::after {
   z-index: 0;
 }
 /* First spray frames the BOTTOM-LEFT corner: stem along the bottom edge,
-   blooms sweeping up-right toward the text. */
-#f-h1, #pw-h1 { bottom: 0; left: 0; transform: translate(-24%, 18%) rotate(-20deg); transform-origin: center center; }
+   blooms sweeping up-right toward the text. Sized a touch larger than the base
+   (this artwork is square, so it renders shorter than the portrait Second spray). */
+#f-h1, #pw-h1 { bottom: 0; left: 0; width: clamp(150px, 51%, 290px); transform: translate(-25%, 13%) rotate(-22deg); transform-origin: center center; }
 /* Second spray is the point-symmetric partner in the TOP-RIGHT corner (f-h1 + 180°):
    stem along the top/right edge, blooms sweeping down-left toward the text. */
 #f-h2, #pw-h2 { top: 0; right: 0; transform: translate(24%, -18%) rotate(160deg); transform-origin: center center; }
@@ -432,7 +433,7 @@ body::after {
   <div id="pw-card">
 
     <!-- Same hydrangeas framing the corners as the intro card -->
-    <img class="card-hydrangea" id="pw-h1" src="images/First_Hydrangea.png"  alt="" draggable="false">
+    <img class="card-hydrangea" id="pw-h1" src="images/First_Hydrangea_v2.png"  alt="" draggable="false">
     <img class="card-hydrangea" id="pw-h2" src="images/Second_Hydrangea.png" alt="" draggable="false">
 
     <div class="card-content">
@@ -464,7 +465,7 @@ body::after {
   <div id="modal-card">
 
     <!-- Hydrangeas live INSIDE the card — removed with it on dismiss -->
-    <img class="card-hydrangea" id="f-h1" src="images/First_Hydrangea.png"  alt="" draggable="false">
+    <img class="card-hydrangea" id="f-h1" src="images/First_Hydrangea_v2.png"  alt="" draggable="false">
     <img class="card-hydrangea" id="f-h2" src="images/Second_Hydrangea.png" alt="" draggable="false">
 
     <!-- All text wrapped so it sits above the hydrangea images -->
