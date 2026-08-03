@@ -1302,7 +1302,14 @@ document.addEventListener('keydown', e => {
 });
 
 let resizeTimer;
+let lastVW = window.innerWidth;
 window.addEventListener('resize', () => {
+  /* Ignore height-only changes. On mobile/iPad the browser toolbar shows/hides
+     while scrolling (and the scroll-lock toggles on open), which fires a
+     height-only resize — that must NOT tear down an open lightbox. Only a real
+     width change (window resize / orientation) rebuilds the gallery. */
+  if (window.innerWidth === lastVW) return;
+  lastVW = window.innerWidth;
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => {
     if (zoomGlobalIdx !== -1) closeZoom();
