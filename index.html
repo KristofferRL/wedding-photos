@@ -130,10 +130,10 @@ body::after {
   width: clamp(130px, 42%, 240px);
   z-index: 0;
 }
-/* First spray frames the BOTTOM-LEFT corner: stem along the bottom edge,
-   blooms sweeping up-right toward the text. Sized a touch larger than the base
+/* First spray anchors the BOTTOM-LEFT corner. Displayed upright (no rotation);
+   position and size unchanged from before. Sized a touch larger than the base
    (this artwork is square, so it renders shorter than the portrait Second spray). */
-#f-h1, #pw-h1 { bottom: 0; left: 0; width: clamp(150px, 51%, 290px); transform: translate(-25%, 13%) rotate(-22deg); transform-origin: center center; }
+#f-h1, #pw-h1 { bottom: 0; left: 0; width: clamp(150px, 51%, 290px); transform: translate(-25%, 13%); transform-origin: center center; }
 /* Second spray is the point-symmetric partner in the TOP-RIGHT corner (f-h1 + 180°):
    stem along the top/right edge, blooms sweeping down-left toward the text. */
 #f-h2, #pw-h2 { top: 0; right: 0; transform: translate(24%, -18%) rotate(160deg); transform-origin: center center; }
@@ -292,7 +292,7 @@ body::after {
   background: rgba(6,18,18,.92);
   backdrop-filter: blur(5px);
   display: none; cursor: pointer;
-  overflow: hidden;
+  overflow: hidden; overscroll-behavior: none; touch-action: none;
 }
 #zoom-overlay.open { display: block; animation: zfade .26s ease; }
 @keyframes zfade { from { opacity: 0; } to { opacity: 1; } }
@@ -332,21 +332,17 @@ body::after {
 .z-card img.developing-fast { animation: photo-develop  .85s ease-out forwards; }
 
 /* Zoom chrome */
-#zoom-count {
-  position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
-  font-family: 'Cormorant SC', serif; font-size: .68rem; letter-spacing: .22em;
-  color: rgba(245,236,215,.36); z-index: 2; pointer-events: none;
-}
 #zoom-close {
-  position: fixed; top: 20px; right: 24px; z-index: 302;
+  position: fixed; top: 20px; right: 24px; z-index: 304;
   background: none; border: none; color: rgba(245,236,215,.6);
   font-size: 1.9rem; line-height: 1; cursor: pointer; padding: 6px;
   transition: color .2s, transform .22s;
 }
 #zoom-close:hover { color: var(--cream); transform: rotate(90deg) scale(1.12); }
+#zoom-close:focus-visible { outline: 2px solid var(--cream); outline-offset: 2px; color: var(--cream); }
 
 .zoom-arrow {
-  position: fixed; top: 50%; transform: translateY(-50%); z-index: 302;
+  position: fixed; top: 50%; transform: translateY(-50%); z-index: 304;
   background: none; border: none; color: rgba(245,236,215,.5);
   font-size: 3.4rem; line-height: 1; cursor: pointer; padding: 12px 16px;
   user-select: none; transition: color .2s, transform .22s;
@@ -355,51 +351,83 @@ body::after {
 #zoom-next { right: 10px; }
 #zoom-prev:hover { color: var(--cream); transform: translateY(-50%) translateX(-4px); }
 #zoom-next:hover { color: var(--cream); transform: translateY(-50%) translateX(4px); }
+.zoom-arrow:focus-visible { outline: 2px solid var(--cream); outline-offset: 2px; color: var(--cream); }
 
-/* Share button */
-#zoom-share {
-  position: fixed; top: 20px; left: 24px; z-index: 302;
-  background: none; border: 1px solid rgba(245,236,215,.28);
-  color: rgba(245,236,215,.6);
-  font-family: 'Cormorant SC', serif;
-  font-size: .62rem; letter-spacing: .22em; text-transform: uppercase;
-  padding: 8px 14px; border-radius: 2px; cursor: pointer;
-  transition: color .2s, border-color .2s, background .2s;
-  display: flex; align-items: center; gap: 6px;
+/* Bottom cluster: photo counter sits directly above a fixed full-width action bar */
+#zoom-bottom {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 303;
+  display: flex; flex-direction: column; align-items: center;
+  pointer-events: none;              /* empty area lets clicks fall through to close */
 }
-#zoom-share:hover { color: var(--cream); border-color: rgba(245,236,215,.6); background: rgba(245,236,215,.07); }
-#zoom-share .share-icon { font-size: 1rem; line-height: 1; }
-#zoom-share .share-label { line-height: 1; }
+#zoom-count {
+  font-family: 'Cormorant SC', serif; font-size: .7rem; letter-spacing: .24em;
+  color: rgba(245,236,215,.52); text-shadow: 0 1px 3px rgba(0,0,0,.5);
+  padding: 0 0 9px; pointer-events: none;
+}
+#zoom-actionbar {
+  width: 100%;
+  display: flex; justify-content: center; align-items: center; gap: 14px;
+  padding: 12px 24px calc(12px + env(safe-area-inset-bottom));  /* mobile safe area */
+  background: rgba(8, 34, 34, 0.68);                            /* dark teal, translucent */
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(245,236,215,.14);
+  box-shadow: 0 -8px 28px rgba(0,0,0,.34);
+  pointer-events: auto;
+}
+.zoom-action {
+  flex: 0 0 auto;                    /* compact + centred on desktop, not stretched */
+  min-width: 148px; min-height: 44px; /* equal width/height, 44px touch target */
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  background: rgba(245,236,215,.07);
+  border: 1px solid rgba(245,236,215,.30);
+  color: rgba(245,236,215,.82);
+  font-family: 'Cormorant SC', serif;
+  font-size: .66rem; font-weight: 500; letter-spacing: .2em; text-transform: uppercase;
+  padding: 11px 20px; border-radius: 2px; cursor: pointer;
+  transition: color .2s, border-color .2s, background .2s;
+}
+.zoom-action:hover { color: var(--cream); border-color: rgba(245,236,215,.6); background: rgba(245,236,215,.14); }
+.zoom-action:focus-visible { outline: 2px solid var(--cream); outline-offset: 2px; color: var(--cream); }
+.zoom-action .action-icon { width: 15px; height: 15px; flex: 0 0 auto; display: block; }
+.zoom-action .action-label { line-height: 1; }
 
 /* ─────────────────────────────────────────
    SURPRISE BUTTON  — warm dusty rose
 ───────────────────────────────────────── */
+/* translateX(-50%) is baked into every frame so the centred button never
+   jumps sideways while wiggling */
 @keyframes wiggle {
-  0%   { transform: translateY(0) rotate(0deg); }
-  14%  { transform: translateY(-5px) rotate(-3.5deg); }
-  28%  { transform: translateY(-2px) rotate(3deg); }
-  42%  { transform: translateY(-5px) rotate(-2.5deg); }
-  57%  { transform: translateY(-1px) rotate(2deg); }
-  71%  { transform: translateY(-4px) rotate(-1.5deg); }
-  85%  { transform: translateY(-1px) rotate(1deg); }
-  100% { transform: translateY(0) rotate(0deg); }
+  0%   { transform: translateX(-50%) translateY(0) rotate(0deg); }
+  14%  { transform: translateX(-50%) translateY(-5px) rotate(-3.5deg); }
+  28%  { transform: translateX(-50%) translateY(-2px) rotate(3deg); }
+  42%  { transform: translateX(-50%) translateY(-5px) rotate(-2.5deg); }
+  57%  { transform: translateX(-50%) translateY(-1px) rotate(2deg); }
+  71%  { transform: translateX(-50%) translateY(-4px) rotate(-1.5deg); }
+  85%  { transform: translateX(-50%) translateY(-1px) rotate(1deg); }
+  100% { transform: translateX(-50%) translateY(0) rotate(0deg); }
 }
 
 #surprise-btn {
-  position: fixed; bottom: 24px; right: 24px; z-index: 50;
-  background: rgba(200,144,122,.90);
-  border: 1px solid rgba(245,236,215,.45);
+  position: fixed; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom));
+  transform: translateX(-50%); z-index: 50;
+  background: rgb(200,144,122);             /* solid dusty rose */
+  border: 1px solid rgba(245,236,215,.5);
   color: var(--cream);
   font-family: 'Cormorant SC', serif;
   font-size: .68rem; font-weight: 500; letter-spacing: .26em; text-transform: uppercase;
-  padding: 12px 22px; border-radius: 2px; cursor: pointer;
+  padding: 12px 24px; border-radius: 2px; cursor: pointer;
   opacity: 0; pointer-events: none;
-  transition: opacity .7s, background .22s;
-  box-shadow: 0 4px 18px rgba(80,20,10,.28);
+  transition: opacity .7s, background .22s, box-shadow .22s;
+  box-shadow: 0 8px 22px rgba(90,30,18,.38), 0 2px 6px rgba(0,0,0,.18);
+  display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
 }
 #surprise-btn.visible { opacity: 1; pointer-events: auto; }
-#surprise-btn:hover { background: rgba(176,122,102,1); }
+#surprise-btn:hover { background: rgb(176,122,102); box-shadow: 0 10px 26px rgba(90,30,18,.44), 0 2px 6px rgba(0,0,0,.2); }
+#surprise-btn:focus-visible { outline: 2px solid var(--cream); outline-offset: 3px; }
 #surprise-btn.wiggling { animation: wiggle .65s ease-in-out; }
+#surprise-btn .sparkle { font-size: .8rem; line-height: 1; }
+/* Surprise Me is a gallery-only control — hidden while the lightbox is open */
+body.lightbox-open #surprise-btn { opacity: 0 !important; pointer-events: none !important; }
 
 /* ─────────────────────────────────────────
    PARTICLE BURST
@@ -413,14 +441,30 @@ body::after {
 }
 
 /* ─────────────────────────────────────────
+   FULLSCREEN PHOTO  (tap the active photo again)
+───────────────────────────────────────── */
+#fs-overlay {
+  position: fixed; inset: 0; z-index: 350;
+  background: #000;
+  display: none; align-items: center; justify-content: center;
+  cursor: zoom-out; overscroll-behavior: none; touch-action: none;
+  animation: zfade .2s ease;
+}
+#fs-overlay.open { display: flex; }
+/* photo fills the viewport edge-to-edge, whole image visible, no chrome */
+#fs-img { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+/* ─────────────────────────────────────────
    RESPONSIVE
 ───────────────────────────────────────── */
 @media (max-width: 480px) {
   .zoom-arrow  { font-size: 2.4rem; padding: 10px 8px; }
   #zoom-prev   { left: 2px; }
   #zoom-next   { right: 2px; }
-  #surprise-btn { bottom: 16px; right: 16px; padding: 10px 16px; }
-  #zoom-share  { top: auto; bottom: 78px; left: 50%; transform: translateX(-50%); }
+  #surprise-btn { bottom: calc(16px + env(safe-area-inset-bottom)); padding: 11px 20px; }
+  /* buttons stay side by side, share the width equally, reduced padding (never icon-only) */
+  #zoom-actionbar { gap: 10px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); }
+  .zoom-action   { flex: 1 1 0; min-width: 0; max-width: 240px; padding: 12px 10px; letter-spacing: .12em; }
 }
 </style>
 </head>
@@ -489,22 +533,35 @@ body::after {
 <!-- ══════════════════════════════════════
      SURPRISE BUTTON
 ════════════════════════════════════════ -->
-<button id="surprise-btn" title="Open a random photo">✦ Surprise Me</button>
+<button id="surprise-btn" title="Open a random photo"><span class="sparkle" aria-hidden="true">✦</span> Surprise Me</button>
 
 <!-- ══════════════════════════════════════
      ZOOM OVERLAY
 ════════════════════════════════════════ -->
 <div id="zoom-overlay" role="dialog" aria-modal="true" aria-label="Photo viewer">
   <div id="zoom-strip-outer"></div>
-  <div id="zoom-count"></div>
   <button id="zoom-close" aria-label="Close viewer">✕</button>
   <button class="zoom-arrow" id="zoom-prev" aria-label="Previous photo">&#8249;</button>
   <button class="zoom-arrow" id="zoom-next" aria-label="Next photo">&#8250;</button>
-  <button id="zoom-share" aria-label="Copy link to this photo">
-    <span class="share-icon">⛓</span>
-    <span class="share-label" id="share-label">Share</span>
-  </button>
+
+  <!-- Counter directly above a fixed full-width action bar (Share + Download) -->
+  <div id="zoom-bottom">
+    <div id="zoom-count" aria-live="polite"></div>
+    <div id="zoom-actionbar" role="group" aria-label="Photo actions">
+      <button class="zoom-action" id="zoom-share" aria-label="Copy link to this photo">
+        <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l2.5-2.5a5 5 0 0 0-7.07-7.07L11 5"/><path d="M14 11a5 5 0 0 0-7.07 0l-2.5 2.5a5 5 0 0 0 7.07 7.07L13 19"/></svg>
+        <span class="action-label" id="share-label">Share</span>
+      </button>
+      <button class="zoom-action" id="zoom-download" aria-label="Download this photo">
+        <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v11"/><path d="M7.5 9.5 12 14l4.5-4.5"/><path d="M4 20h16"/></svg>
+        <span class="action-label">Download</span>
+      </button>
+    </div>
+  </div>
 </div>
+
+<!-- Fullscreen photo: tapping the active photo again fills the viewport, no chrome -->
+<div id="fs-overlay" aria-hidden="true"><img id="fs-img" alt=""></div>
 
 <script>
 /* ═══════════════════════════════════════
@@ -528,6 +585,7 @@ const ROW_PAD_B = 36;
 let revealed      = false;
 let perRow        = 0;
 let zoomGlobalIdx = -1;
+let developedIdx  = -1;       // guard: index whose develop animation has already played (prevents double-fire)
 const imgOrientations = {};   // idx → true if landscape (naturalWidth > naturalHeight)
 const fullCache       = {};   // idx → loaded full-res HTMLImageElement (once fetched)
 
@@ -853,15 +911,40 @@ function openZoom(globalIdx, skipDevelop) {
 
   renderZoom(skipDevelop ? 'fast' : 'open');
   document.getElementById('zoom-overlay').classList.add('open');
+  document.body.classList.add('lightbox-open');   /* hide Surprise Me while in the lightbox */
   lockScroll();
   setPhotoURL(globalIdx);
 }
 
 function closeZoom() {
+  closeFullscreen();
   document.getElementById('zoom-overlay').classList.remove('open');
+  document.body.classList.remove('lightbox-open');
   unlockScroll();
   zoomGlobalIdx = -1;
+  developedIdx  = -1;             /* reset guard so reopening develops again */
   clearPhotoURL();
+}
+
+/* ── Fullscreen: tap the active photo again to fill the viewport (no chrome) ── */
+function openFullscreen() {
+  if (zoomGlobalIdx === -1) return;
+  const idx = zoomGlobalIdx;
+  const fs  = document.getElementById('fs-overlay');
+  const img = document.getElementById('fs-img');
+  img.alt = `Wedding photo ${idx + 1}`;
+  img.src = fullCache[idx] ? fullSrc(idx) : thumbSrc(idx);   /* best available now */
+  loadFull(idx, (li) => {                                    /* upgrade to full-res */
+    if (li === idx && fs.classList.contains('open')) img.src = fullSrc(idx);
+  });
+  fs.classList.add('open');
+  fs.setAttribute('aria-hidden', 'false');
+}
+function closeFullscreen() {
+  const fs = document.getElementById('fs-overlay');
+  if (!fs.classList.contains('open')) return;
+  fs.classList.remove('open');
+  fs.setAttribute('aria-hidden', 'true');
 }
 
 function navZoom(dir) {
@@ -951,15 +1034,21 @@ function renderZoom(mode) {
     img.style.maxWidth  = w + 'px';
     img.style.maxHeight = w + 'px';
 
-    /* Apply develop animation to active photo */
-    if (offset === 0 && mode !== 'fast') {
+    /* Apply develop animation to the active photo \u2014 but only once per image.
+       The guard stops the develop from re-firing on the same photo when the
+       strip re-renders (e.g. full-res upgrades) during rapid navigation. */
+    if (offset === 0 && mode !== 'fast' && developedIdx !== gIdx) {
       img.className = mode === 'open' ? 'developing' : 'developing-fast';
+      developedIdx = gIdx;
     }
 
     card.appendChild(img);
     pw.appendChild(card);
 
-    if (offset !== 0) {
+    if (offset === 0) {
+      /* Tapping the already-centred photo opens it fullscreen */
+      pw.addEventListener('click', e => { e.stopPropagation(); openFullscreen(); });
+    } else {
       const captured = gIdx;
       pw.addEventListener('click', e => {
         e.stopPropagation();
@@ -1136,6 +1225,10 @@ zoomEl.addEventListener('touchend', e => {
     navZoom(dx < 0 ? 1 : -1);
   }
 }, { passive: true });
+/* Fully lock the page behind the lightbox: block touch-scroll / rubber-banding.
+   (Swipe nav is measured on touchend, so preventing move-scroll doesn't affect it.) */
+zoomEl.addEventListener('touchmove', e => { e.preventDefault(); }, { passive: false });
+document.getElementById('fs-overlay').addEventListener('touchmove', e => { e.preventDefault(); }, { passive: false });
 
 /* ═══════════════════════════════════════
    EVENT LISTENERS
@@ -1146,10 +1239,13 @@ zoomEl.addEventListener('click', e => {
   if (!e.target.closest('.z-photo') &&
       !e.target.closest('#zoom-close') &&
       !e.target.closest('.zoom-arrow') &&
-      !e.target.closest('#zoom-share')) {
+      !e.target.closest('#zoom-bottom')) {   /* counter + action bar */
     closeZoom();
   }
 });
+
+/* Fullscreen photo overlay: tap anywhere returns to the lightbox */
+document.getElementById('fs-overlay').addEventListener('click', closeFullscreen);
 document.getElementById('zoom-close').addEventListener('click', e => {
   e.stopPropagation(); closeZoom();
 });
@@ -1174,6 +1270,18 @@ document.getElementById('zoom-share').addEventListener('click', e => {
   });
 });
 
+document.getElementById('zoom-download').addEventListener('click', e => {
+  e.stopPropagation();
+  if (zoomGlobalIdx === -1) return;
+  /* Same-origin full-res original → the download attribute saves it directly */
+  const a = document.createElement('a');
+  a.href = fullSrc(zoomGlobalIdx);
+  a.download = `jessica-simon-${String(zoomGlobalIdx + 1).padStart(3, '0')}.png`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+});
+
 document.getElementById('surprise-btn').addEventListener('click', function() {
   burstParticles(this);
   setTimeout(() => {
@@ -1182,6 +1290,11 @@ document.getElementById('surprise-btn').addEventListener('click', function() {
 });
 
 document.addEventListener('keydown', e => {
+  /* Fullscreen intercepts Escape (return to lightbox) and ignores arrows */
+  if (document.getElementById('fs-overlay').classList.contains('open')) {
+    if (e.key === 'Escape') { e.preventDefault(); closeFullscreen(); }
+    return;
+  }
   if (zoomGlobalIdx === -1) return;
   if (e.key === 'ArrowLeft')  { e.preventDefault(); navZoom(-1); }
   if (e.key === 'ArrowRight') { e.preventDefault(); navZoom(1);  }
